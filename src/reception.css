@@ -337,7 +337,7 @@ table {
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: var(--shadow);
-  min-width: 600px; /* Asegura que la tabla mantenga su ancho mínimo */
+  min-width: 700px; /* Asegura que la tabla mantenga su ancho mínimo con columna Tema */
 }
 
 thead {

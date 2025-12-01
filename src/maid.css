@@ -189,16 +189,92 @@ body {
   padding: 22px;
   border-radius: 18px;
   width: 100%;
-  max-width: 420px;
+  max-width: 450px;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
+.modal-content h3 {
+  margin: 0 0 10px 0;
+  color: var(--primary);
+}
+
+.modal-content label {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.modal-content input[type="text"],
+.modal-content textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.modal-content input[type="text"]:focus,
+.modal-content textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.modal-content textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+#cameraArea {
+  margin: 10px 0;
+  padding: 12px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+#video {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+#cameraControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+#photoCount {
+  font-weight: 600;
+  color: var(--primary);
+  background: white;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+}
+
+#thumbs {
+  margin-top: 8px;
+}
+
 @media (max-width: 480px) {
   .modal-content {
     width: 95%;
+    padding: 18px;
+    max-height: 85vh;
+  }
+  
+  .modal-content input[type="text"],
+  .modal-content textarea {
+    font-size: 16px; /* Previene zoom en iOS */
   }
 }
 

@@ -291,6 +291,7 @@ async function renderAll() {
     const tr = document.createElement('tr');
     const date = rep.createdAt ? new Date(rep.createdAt).toLocaleString() : '';
     const room = rep.roomId || '';
+    const subject = rep.subject || '—';
     const desc = rep.description || '(sin descripción)';
     const tdDate = document.createElement('td');
     tdDate.textContent = date;
@@ -317,9 +318,13 @@ async function renderAll() {
     }
     tdMaid.textContent = maidDisplay;
 
+    const tdSubject = document.createElement('td');
+    tdSubject.textContent = subject;
+    tdSubject.style.fontWeight = '600';
+
     const tdDesc = document.createElement('td');
-    // limitar texto a 200 caracteres visuales
-    tdDesc.textContent = desc.length > 200 ? desc.slice(0, 197) + '...' : desc;
+    // limitar texto a 150 caracteres visuales
+    tdDesc.textContent = desc.length > 150 ? desc.slice(0, 147) + '...' : desc;
     const tdImgs = document.createElement('td');
     if (rep.images && rep.images.length) {
       const btn = document.createElement('button');
@@ -336,6 +341,7 @@ async function renderAll() {
     tr.appendChild(tdDate);
     tr.appendChild(tdRoom);
     tr.appendChild(tdMaid);
+    tr.appendChild(tdSubject);
     tr.appendChild(tdDesc);
     tr.appendChild(tdImgs);
     reportsEl.appendChild(tr);

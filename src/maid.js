@@ -260,19 +260,25 @@ function openReportModal(room) {
   modal.innerHTML = `
   <div class="modal-content">
     <h3>Siniestro - Hab ${room.id}</h3>
-    <label>Descripción</label>
-    <textarea id="desc"></textarea>
+    
+    <label for="subject">Tema / Asunto</label>
+    <input id="subject" type="text" placeholder="Ej: Fuga de agua, daño en mueble, etc." required />
+    
+    <label for="desc">Descripción</label>
+    <textarea id="desc" placeholder="Describe el problema en detalle..." required></textarea>
+    
     <label>Fotos (máx 3)</label>
-      <div id="cameraArea">
-        <video id="video" autoplay playsinline style="width:100%;max-height:240px;background:#000;display:none;border-radius:6px;"></video>
-        <canvas id="canvas" style="display:none;"></canvas>
-        <div id="cameraControls" style="margin-top:8px;display:none;align-items:center;gap:8px;">
-          <button id="startCam" class="btn btn-sm btn-primary">Iniciar cámara</button>
-          <button id="capture" class="btn btn-sm btn-success" disabled>Tomar foto</button>
-          <span id="photoCount" style="margin-left:8px">0 / 3</span>
-        </div>
-        <div id="thumbs" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"></div>
+    <div id="cameraArea">
+      <video id="video" autoplay playsinline style="width:100%;max-height:240px;background:#000;display:none;border-radius:6px;"></video>
+      <canvas id="canvas" style="display:none;"></canvas>
+      <div id="cameraControls" style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+        <button id="startCam" class="btn btn-sm btn-primary">Iniciar cámara</button>
+        <button id="capture" class="btn btn-sm btn-success" disabled>Tomar foto</button>
+        <span id="photoCount" style="margin-left:8px">0 / 3</span>
       </div>
+      <div id="thumbs" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"></div>
+    </div>
+    
     <div class="row">
       <button id="send" class="btn btn-primary">Enviar</button>
       <button id="close" class="btn btn-secondary">Cerrar</button>
@@ -345,6 +351,10 @@ function openReportModal(room) {
       await warningModal("Tu navegador no soporta acceso a cámara.");
       return false;
     }
+    
+    startCamBtn.disabled = true;
+    startCamBtn.textContent = "Iniciando...";
+    
     try {
       // intentar cámara trasera primero
       stream = await navigator.mediaDevices.getUserMedia({
@@ -353,10 +363,13 @@ function openReportModal(room) {
       });
       video.srcObject = stream;
       video.style.display = "block";
-      document.getElementById("cameraControls").style.display = "flex";
+      startCamBtn.style.display = "none";
       captureBtn.disabled = false;
+      updateUI();
       return true;
     } catch (e) {
+      startCamBtn.disabled = false;
+      startCamBtn.textContent = "Iniciar cámara";
       await warningModal("No se pudo acceder a la cámara trasera. Verifica permisos o intenta en otro dispositivo.");
       return false;
     }
@@ -367,13 +380,17 @@ function openReportModal(room) {
       stream.getTracks().forEach((t) => t.stop());
       stream = null;
     }
-    video.style.display = "none";
-    document.getElementById("cameraControls").style.display = "none";
+    if (video) video.style.display = "none";
+    const camControls = document.getElementById("cameraControls");
+    if (camControls && startCamBtn) {
+      startCamBtn.style.display = "inline-block";
+      startCamBtn.disabled = false;
+      startCamBtn.textContent = "Iniciar cámara";
+    }
   }
 
   startCamBtn.onclick = async () => {
-    const ok = await startStream();
-    if (ok) updateUI();
+    await startStream();
   };
 
   captureBtn.onclick = () => {
@@ -395,9 +412,18 @@ function openReportModal(room) {
   };
 
   document.getElementById("send").onclick = async () => {
+    const subject = document.getElementById("subject").value.trim();
     const desc = document.getElementById("desc").value.trim();
 
-    if (!desc) return alert("Descripción requerida");
+    if (!subject) {
+      alert("El tema es requerido");
+      return;
+    }
+
+    if (!desc) {
+      alert("La descripción es requerida");
+      return;
+    }
 
     // validar fotos tomadas
     if (images.length === 0) {
@@ -411,6 +437,7 @@ function openReportModal(room) {
     const report = {
       _id: "r_" + Date.now(),
       roomId: room.id,
+      subject: subject,
       description: desc,
       images: finalImages,
       createdAt: new Date().toISOString(),
