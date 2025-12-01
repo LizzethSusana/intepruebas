@@ -10,7 +10,7 @@ async function bootstrap() {
         await Promise.all(regs.map(r => r.unregister()));
       } catch (_) {}
     } else {
-      navigator.serviceWorker.register("sw.js").catch(() => {});
+      navigator.serviceWorker.register("./sw.js").catch(() => {});
     }
   }
 
@@ -44,7 +44,7 @@ async function bootstrap() {
         alert("Recepción solo funciona con internet.");
         return;
       }
-      location.href = "/reception.html";
+      location.href = "./reception.html";
       return;
     }
 
@@ -74,7 +74,7 @@ async function bootstrap() {
 
       // Acceso correcto → Maid
       const encoded = encodeURIComponent(maid.id || maid.email);
-      location.href = `/maid.html?user=${encoded}`;
+      location.href = `./maid.html?user=${encoded}`;
 
     } catch (err) {
       console.error("Error login:", err);

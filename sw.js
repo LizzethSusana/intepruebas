@@ -13,20 +13,20 @@ self.addEventListener("activate", (event) => {
 });
 
 const APP_SHELL = [
-  "index.html",
-  "maid.html",
-  "reception.html",
-  "src/offline-sync.js",
-  "src/idb.js",
-  "src/styles.css",
-  "src/maid.css",
-  "src/reception.css",
-  "src/app-login.js",
-  "src/maid.js",
-  "src/reception.js",
-  "src/api.js",
-  "src/assets/icons/icon-192.png",
-  "src/assets/icons/icon-512.png"
+  "./index.html",
+  "./maid.html",
+  "./reception.html",
+  "./src/offline-sync.js",
+  "./src/idb.js",
+  "./src/styles.css",
+  "./src/maid.css",
+  "./src/reception.css",
+  "./src/app-login.js",
+  "./src/maid.js",
+  "./src/reception.js",
+  "./src/api.js",
+  "./src/assets/icons/icon-192.png",
+  "./src/assets/icons/icon-512.png"
 ];
 
 self.addEventListener("install", (event) => {

@@ -19,7 +19,7 @@ let currentFilter = "all";
 
 if (!user) {
   alert("Usuario no especificado. Vuelve al login.");
-  location.href = "/index.html";
+  location.href = "./index.html";
 }
 
 filterBtns.forEach((b) => {
