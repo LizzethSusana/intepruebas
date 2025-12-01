@@ -1,4 +1,11 @@
 import { openDB, getAll, put } from "./idb.js";
+
+// En desarrollo, desregistrar SW para evitar caché de estilos
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+  if (import.meta && import.meta.env && import.meta.env.DEV) {
+    navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});
+  }
+}
 import { saveReportOffline } from "./offline-sync.js";
 
 const modal = document.getElementById("modal");

@@ -1,5 +1,12 @@
 import { getAll, put, del } from "./idb.js";
 
+// En desarrollo, desregistrar SW para evitar caché de estilos
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+  if (import.meta && import.meta.env && import.meta.env.DEV) {
+    navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});
+  }
+}
+
 // Referencias DOM necesarias
 const modal = document.getElementById("modal");
 const roomsList = document.getElementById("roomsList");
@@ -420,13 +427,46 @@ async function editRoomModal(room) {
 
 function addMaidModal() {
   modal.classList.remove("hidden");
-  modal.innerHTML = `<div class="modal-content" role="dialog"><h3>Nueva Camarera</h3><label>Nombre</label><input id="maidName" required/><label>Correo</label><input id="maidEmail" type="email" required/><label>Contraseña (opcional)</label><input id="maidPassword" type="password" placeholder="Opcional" /><label>Estado</label><select id="maidStatus"><option value="Disponible">Disponible</option><option value="No disponible">No disponible</option></select><div class="row"><button id="saveMaid">Guardar</button><button id="closeModal">Cerrar</button></div></div>`;
+  modal.innerHTML = `<div class="modal-content" role="dialog">
+    <h3>Nueva Camarera</h3>
+    <label for="maidName">Nombre</label>
+    <input id="maidName" required/>
+    <label for="maidEmail">Correo</label>
+    <input id="maidEmail" type="email" required/>
+    <label for="maidPassword">Contraseña (opcional)</label>
+    <input id="maidPassword" type="password" placeholder="Opcional" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" />
+    <div class="row" style="justify-content:flex-end; gap:8px; margin-top:6px;">
+      <button id="pwdSelect" type="button" class="btn btn-sm btn-outline-secondary">Seleccionar</button>
+    </div>
+    <label for="maidStatus">Estado</label>
+    <select id="maidStatus"><option value="Disponible">Disponible</option><option value="No disponible">No disponible</option></select>
+    <div class="row"><button id="saveMaid">Guardar</button><button id="closeModal">Cerrar</button></div>
+  </div>`;
   document.getElementById("closeModal").onclick = () => modal.classList.add("hidden");
   // style buttons
   const saveMaidBtn = document.getElementById("saveMaid");
   const closeMaidBtn = document.getElementById("closeModal");
   if (saveMaidBtn) saveMaidBtn.className = 'btn btn-primary';
   if (closeMaidBtn) closeMaidBtn.className = 'btn btn-secondary';
+
+  // Controles de contraseña: mostrar/ocultar y seleccionar
+  const pwdInput = document.getElementById("maidPassword");
+  const pwdToggle = document.getElementById("pwdToggle");
+  const pwdSelect = document.getElementById("pwdSelect");
+  if (pwdToggle && pwdInput) {
+    pwdToggle.onclick = () => {
+      pwdInput.type = pwdInput.type === 'password' ? 'text' : 'password';
+      pwdToggle.textContent = pwdInput.type === 'password' ? 'Mostrar' : 'Ocultar';
+      pwdInput.focus();
+    };
+  }
+  if (pwdSelect && pwdInput) {
+    pwdSelect.onclick = () => {
+      pwdInput.focus();
+      pwdInput.select();
+      try { document.execCommand('copy'); } catch (_) {}
+    };
+  }
 
   document.getElementById("saveMaid").onclick = async () => {
     const name = document.getElementById("maidName").value.trim();
@@ -464,8 +504,12 @@ function editMaidModal(maid) {
       <input id="editMaidEmail" type="email"
              value="${maid.email || maid.id || ''}" required/>
 
-      <label>Nueva Contraseña (opcional)</label>
-      <input id="editMaidPassword" type="password" placeholder="Dejar vacío para no cambiar"/>
+      <label for="editMaidPassword">Nueva Contraseña (opcional)</label>
+      <input id="editMaidPassword" type="password" placeholder="Dejar vacío para no cambiar" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <div class="row" style="justify-content:flex-end; gap:8px; margin-top:6px;">
+        <button id="editPwdToggle" type="button" class="btn btn-sm btn-secondary">Mostrar</button>
+        <button id="editPwdSelect" type="button" class="btn btn-sm btn-outline-secondary">Seleccionar</button>
+      </div>
 
       <label>Estado</label>
       <select id="editMaidStatus">
@@ -488,6 +532,25 @@ function editMaidModal(maid) {
   const saveBtn = document.getElementById("saveEditMaid");
   saveBtn.className = "btn btn-primary";
   document.getElementById("closeModal").className = "btn btn-secondary";
+
+  // Controles de contraseña en edición
+  const editPwdInput = document.getElementById('editMaidPassword');
+  const editPwdToggle = document.getElementById('editPwdToggle');
+  const editPwdSelect = document.getElementById('editPwdSelect');
+  if (editPwdToggle && editPwdInput) {
+    editPwdToggle.onclick = () => {
+      editPwdInput.type = editPwdInput.type === 'password' ? 'text' : 'password';
+      editPwdToggle.textContent = editPwdInput.type === 'password' ? 'Mostrar' : 'Ocultar';
+      editPwdInput.focus();
+    };
+  }
+  if (editPwdSelect && editPwdInput) {
+    editPwdSelect.onclick = () => {
+      editPwdInput.focus();
+      editPwdInput.select();
+      try { document.execCommand('copy'); } catch (_) {}
+    };
+  }
 
   document.getElementById("saveEditMaid").onclick = async () => {
     const name = document.getElementById("editMaidName").value.trim();

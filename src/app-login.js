@@ -1,9 +1,18 @@
 import { openDB, getAll, put } from "./idb.js";
 
 async function bootstrap() {
-  // Registrar service worker
-  if ("serviceWorker" in navigator)
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  // Registrar/Desregistrar service worker según entorno
+  if ("serviceWorker" in navigator) {
+    // En desarrollo, desregistrar para evitar caché que rompe estilos
+    if (import.meta && import.meta.env && import.meta.env.DEV) {
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      } catch (_) {}
+    } else {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+  }
 
   await openDB();
 
