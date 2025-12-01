@@ -1,0 +1,487 @@
+/* ============================
+      ESTILO RECEPCIÓN HOTEL
+   Tipo PriceTravel / Booking
+   ============================ */
+
+:root {
+  --primary: #0066cc;
+  --primary-dark: #004a99;
+  --accent: #00a8e8;
+  --bg: #f5f7fa;
+  --text: #2c3e50;
+  --card-bg: #ffffff;
+  --radius: 14px;
+  --shadow: 0 4px 14px rgba(0,0,0,0.08);
+  --shadow-hover: 0 6px 20px rgba(0,0,0,0.12);
+}
+
+/* ======= GENERAL ======= */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Inter", "Poppins", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ======= TOPBAR ======= */
+.topbar {
+  background: var(--primary);
+  color: white;
+  padding: 18px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+}
+
+.topbar nav a {
+  color: white;
+  font-weight: 500;
+  text-decoration: none;
+  transition: opacity .2s;
+}
+.topbar nav a:hover { opacity: .7; }
+
+@media (max-width: 480px) {
+  .topbar {
+    padding: 12px 15px;
+  }
+  
+  .topbar h1 {
+    font-size: 1.2rem;
+    margin: 0;
+  }
+  
+  .topbar nav a {
+    font-size: 0.9rem;
+  }
+}
+
+/* ======= MAIN ======= */
+.container {
+  max-width: 1100px;
+  margin: 40px auto;
+  display: grid;
+  gap: 25px;
+  padding: 0 15px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    margin: 20px auto;
+    gap: 20px;
+    padding: 0 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    margin: 15px auto;
+    gap: 15px;
+    padding: 0 8px;
+  }
+}
+
+/* ======= CARDS ======= */
+.card {
+  background: var(--card-bg);
+  padding: 25px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: .25s;
+}
+.card:hover { box-shadow: var(--shadow-hover); }
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.card h2 {
+  color: var(--primary-dark);
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: 18px;
+  }
+  
+  .card h2 {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 12px;
+  }
+  
+  .card h2 {
+    font-size: 0.95rem;
+  }
+  
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ======= BUTTONS ======= */
+.btn-primary,
+#btnAddMaid.btn-secondary {
+  background: var(--primary) !important;
+  border: none !important;
+  border-radius: var(--radius);
+  padding: 8px 16px;
+}
+.btn-primary:hover,
+#btnAddMaid:hover {
+  background: var(--primary-dark) !important;
+}
+
+/* ======= GRID ======= */
+/* GRID RESPONSIVO */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 18px;
+}
+
+@media (max-width: 1024px) { 
+  .grid { grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); } 
+}
+
+@media (max-width: 768px) { 
+  .grid { grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); } 
+}
+
+@media (max-width: 480px) { 
+  .grid { grid-template-columns: 1fr; } 
+}
+
+
+.grid .item, #maidsList .item {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 15px;
+  transition: .2s;
+}
+.grid .item:hover, #maidsList .item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+/* ========================= */
+/*      PAGER CENTRADO       */
+/* ========================= */
+
+.pagination,
+.pager {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 12px;
+  margin: 18px 0;
+  width: 100%;
+}
+
+.pager button,
+.pagination button {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  background: #e0e4f2;
+  font-weight: 600;
+}
+
+.pager span,
+.pagination span {
+  font-weight: bold;
+  color: #444;
+}
+
+/* =============================
+           TABLAS
+   ============================= */
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* desplazamiento suave en iOS */
+  width: 100%;
+  margin-top: 10px;
+}
+
+.maids-container {
+  width: 100%;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 0.95rem;
+  background: white;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+thead {
+  background: var(--primary);
+  color: white;
+}
+
+th, td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #e6e6e6;
+  text-align: left;
+}
+
+/* Responsividad en tabletas y móviles */
+@media (max-width: 768px) {
+  th, td {
+    padding: 10px 8px;
+    font-size: 0.85rem;
+  }
+  
+  table {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .table-wrapper {
+    margin-top: 8px;
+  }
+  
+  /* Convertir tabla a cards en móvil */
+  .maids-container table {
+    border-collapse: separate;
+    border-spacing: 0 10px;
+    background: transparent;
+    box-shadow: none;
+  }
+  
+  .maids-container thead {
+    display: none;
+  }
+  
+  .maids-container tbody {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .maids-container tbody tr {
+    display: grid;
+    grid-template-columns: 100%;
+    background: white;
+    border: none;
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    gap: 8px;
+  }
+  
+  .maids-container tbody td {
+    padding: 6px 0;
+    border: none;
+    border-bottom: none;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+  }
+  
+  /* Labels para cada campo */
+  .maids-container tbody td::before {
+    font-weight: 700;
+    color: var(--primary-dark);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .maids-container tbody tr td:nth-child(1)::before { content: "Nombre:"; }
+  .maids-container tbody tr td:nth-child(2)::before { content: "Correo:"; }
+  .maids-container tbody tr td:nth-child(3)::before { content: "Estado:"; }
+  .maids-container tbody tr td:nth-child(4)::before { content: "Acciones:"; }
+  
+  .maids-container tbody tr td:nth-child(4) {
+    grid-template-columns: auto;
+    display: flex;
+    gap: 8px;
+  }
+  
+  .maids-container tbody tr td:nth-child(4)::before {
+    display: none;
+  }
+  
+  th, td {
+    padding: 8px 6px;
+    font-size: 0.75rem;
+  }
+  
+  table {
+    font-size: 0.75rem;
+    min-width: 100%;
+  }
+  
+  /* Botones de acción más pequeños pero aún táctiles */
+  .btn-sm {
+    padding: 6px 10px !important;
+    font-size: 0.75rem !important;
+  }
+  
+  .btn-sm i {
+    font-size: 0.9rem;
+  }
+  
+  /* Garantizar que el select dentro de la tarjeta sea táctil */
+  .actions {
+    gap: 6px;
+  }
+}
+
+/* ===== VER IMÁGENES BUTTON ===== */
+.view-img-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.view-img-btn:hover {
+  background: var(--primary);
+}
+
+/* ========================= */
+/*       DISEÑO DEL MODAL    */
+/* ========================= */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: #00000065;        /* fondo oscuro suave */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 15px;
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.25s ease;
+  backdrop-filter: blur(2px);   /* efecto blur */
+  z-index: 9999;
+}
+
+.modal:not(.hidden) {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 10px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.img-viewer .modal-content {
+  max-width: 90%;
+  padding: 10px;
+}
+
+
+@keyframes pop {
+  0% { transform: scale(0.85); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.modal-content input,
+.modal-content select,
+.modal-content textarea {
+  width: 100%;
+  padding: 9px;
+  border-radius: 8px;
+  border: 1px solid #bbb;
+  margin-bottom: 14px;
+  font-size: 1rem;
+}
+
+/* Asegurar que los controles del modal reciban foco correctamente */
+.modal .modal-content input[type="password"],
+.modal .modal-content input[type="email"],
+.modal .modal-content input[type="text"],
+.modal .modal-content textarea {
+  background: #fff;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.modal-content .row {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* asegurar campos y botones son grandes y táctiles en móviles */
+.modal-content input,
+.modal-content select,
+.modal-content textarea,
+.modal-content button {
+  font-size: 1rem;
+}
+
+/* Ajustes adicionales para tarjetas de habitación y checkbox inline */
+.room-card {
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.95);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.room-card .info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.room-card h3 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+
+.status-badge { display:inline-block; padding:4px 8px; border-radius:999px; font-weight:700; font-size:0.78rem; }
+.status-badge.clean { background:#d1e7dd; color:#0f5132; }
+.status-badge.dirty { background:#f8d7da; color:#842029; }
+.status-badge.blocked { background:#e2e3e5; color:#41464b; }
+.status-badge.disponible { background:#cff4fc; color:#055160; }
+.status-badge.no-disponible { background:#fff3cd; color:#664d03; }
+
+.assigned, .occ { font-size:0.92rem; color:#333; }
+
+select { width:100%; padding:8px; border-radius:8px; border:1px solid rgba(0,0,0,0.08); }
+
+.actions { display:flex; gap:8px; justify-content:flex-end; }
+
+/* Inline checkbox next to its label */
+.inline-check { display:inline-flex; align-items:center; gap:8px; }
+.inline-check input[type="checkbox"] { margin:0; width:16px; height:16px; }
+.inline-check span { font-size:0.95rem; }
+
+/* Fine tune image viewer */
+.img-viewer .img-content { background: honeydew; box-shadow: none; padding: 12px; }
+
+@media (max-width:640px) { .grid { grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); } }
+

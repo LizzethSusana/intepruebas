@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>PWA Limpieza Hotel - Camarera</title>
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="stylesheet" href="/src/maid.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>Camarera</h1>
+      <nav>
+        <a href="/index.html" class="logout">Cerrar sesión</a>
+      </nav>
+    </header>
+
+    <main class="container">
+
+      <!-- ==========================
+            HABITACIONES ASIGNADAS
+      ========================== -->
+      <section class="card">
+        <h2>Mis habitaciones asignadas</h2>
+
+        <div class="filters">
+          <button data-filter="all">Todas</button>
+          <button data-filter="to-clean">Sucias</button>
+          <button data-filter="clean">Limpias</button>
+          <button data-filter="occupied">Ocupadas</button>
+        </div>
+
+        <div id="maidRooms" class="grid"></div>
+      </section>
+
+
+      <!-- ==========================
+            TODAS LAS HABITACIONES
+      ========================== -->
+      <section class="card card-secondary">
+        <h2>Listado general de habitaciones</h2>
+
+        <div id="allRooms" class="grid"></div>
+      </section>
+
+    </main>
+
+    <div id="modal" class="modal hidden"></div>
+
+    <script type="module" src="/src/maid.js"></script>
+  </body>
+</html>
