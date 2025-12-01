@@ -16,12 +16,18 @@
 }
 
 /* ======= GENERAL ======= */
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   padding: 0;
   font-family: "Inter", "Poppins", sans-serif;
   background: var(--bg);
   color: var(--text);
+  overflow-x: hidden;
 }
 
 /* ======= TOPBAR ======= */
@@ -132,17 +138,76 @@ body {
   }
 }
 
+/* ======= CONTROLS ======= */
+.controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 /* ======= BUTTONS ======= */
+.btn,
 .btn-primary,
-#btnAddMaid.btn-secondary {
+#btnAddMaid,
+#btnAddRoom {
   background: var(--primary) !important;
   border: none !important;
   border-radius: var(--radius);
-  padding: 8px 16px;
+  padding: 10px 18px;
+  color: white !important;
+  font-weight: 500;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background 0.2s, transform 0.1s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px; /* Tamaño mínimo táctil recomendado */
+  position: relative;
+  z-index: 1;
 }
+
 .btn-primary:hover,
-#btnAddMaid:hover {
+#btnAddMaid:hover,
+#btnAddRoom:hover {
   background: var(--primary-dark) !important;
+}
+
+.btn-primary:active,
+#btnAddMaid:active,
+#btnAddRoom:active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 768px) {
+  .btn,
+  .btn-primary,
+  #btnAddMaid,
+  #btnAddRoom {
+    padding: 12px 20px;
+    font-size: 0.95rem;
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 480px) {
+  .controls {
+    width: 100%;
+  }
+  
+  .btn,
+  .btn-primary,
+  #btnAddMaid,
+  #btnAddRoom {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 20px;
+    min-height: 48px;
+  }
 }
 
 /* ======= GRID ======= */
@@ -215,6 +280,48 @@ body {
   -webkit-overflow-scrolling: touch; /* desplazamiento suave en iOS */
   width: 100%;
   margin-top: 10px;
+  position: relative;
+  border-radius: var(--radius);
+}
+
+/* Indicador visual de scroll en móviles */
+.table-wrapper::after {
+  content: '→';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, transparent, rgba(0,102,204,0.1) 20%, rgba(0,102,204,0.3));
+  padding: 8px 12px;
+  font-size: 1.2rem;
+  color: var(--primary);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+@media (max-width: 768px) {
+  .table-wrapper::after {
+    opacity: 1;
+  }
+  
+  .table-wrapper::-webkit-scrollbar {
+    height: 8px;
+  }
+  
+  .table-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  .table-wrapper::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 10px;
+  }
+  
+  .table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+  }
 }
 
 .maids-container {
@@ -230,6 +337,7 @@ table {
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: var(--shadow);
+  min-width: 600px; /* Asegura que la tabla mantenga su ancho mínimo */
 }
 
 thead {
@@ -241,6 +349,7 @@ th, td {
   padding: 12px 15px;
   border-bottom: 1px solid #e6e6e6;
   text-align: left;
+  white-space: nowrap; /* Evita que el texto se corte */
 }
 
 /* Responsividad en tabletas y móviles */
@@ -258,14 +367,35 @@ th, td {
 @media (max-width: 480px) {
   .table-wrapper {
     margin-top: 8px;
+    /* Scroll mejorado para tabla de reportes */
+    padding-bottom: 4px;
   }
   
-  /* Convertir tabla a cards en móvil */
+  /* Reducir el ancho mínimo de la tabla en móviles muy pequeños */
+  table {
+    font-size: 0.7rem;
+    min-width: 500px;
+  }
+  
+  th, td {
+    padding: 8px 6px;
+    font-size: 0.7rem;
+  }
+  
+  /* Descripción con scroll interno si es muy larga */
+  td:nth-child(4) {
+    max-width: 150px;
+    white-space: normal;
+    word-wrap: break-word;
+  }
+  
+  /* Convertir tabla de camareras a cards en móvil */
   .maids-container table {
     border-collapse: separate;
     border-spacing: 0 10px;
     background: transparent;
     box-shadow: none;
+    min-width: 100%;
   }
   
   .maids-container thead {
@@ -298,6 +428,7 @@ th, td {
     align-items: center;
     gap: 8px;
     font-size: 0.85rem;
+    white-space: normal;
   }
   
   /* Labels para cada campo */
@@ -322,16 +453,6 @@ th, td {
   
   .maids-container tbody tr td:nth-child(4)::before {
     display: none;
-  }
-  
-  th, td {
-    padding: 8px 6px;
-    font-size: 0.75rem;
-  }
-  
-  table {
-    font-size: 0.75rem;
-    min-width: 100%;
   }
   
   /* Botones de acción más pequeños pero aún táctiles */
@@ -380,6 +501,8 @@ th, td {
   transition: 0.25s ease;
   backdrop-filter: blur(2px);   /* efecto blur */
   z-index: 9999;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal:not(.hidden) {
@@ -390,9 +513,29 @@ th, td {
 .modal-content {
   width: 100%;
   max-width: 420px;
-  margin: 0 10px;
+  margin: auto;
   max-height: 90vh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: white;
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-hover);
+  position: relative;
+  z-index: 10000;
+}
+
+@media (max-width: 480px) {
+  .modal {
+    padding: 10px;
+    align-items: flex-start;
+  }
+  
+  .modal-content {
+    max-width: 100%;
+    max-height: 95vh;
+    margin-top: 20px;
+  }
 }
 
 .img-viewer .modal-content {

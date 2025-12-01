@@ -14,6 +14,11 @@ const maidsList = document.getElementById("maidsList");
 const reportsEl = document.getElementById("reportsList");
 const btnAddRoom = document.getElementById("btnAddRoom");
 const btnAddMaid = document.getElementById("btnAddMaid");
+
+// Debug: verificar que los botones se encuentren
+console.log('btnAddRoom:', btnAddRoom);
+console.log('btnAddMaid:', btnAddMaid);
+
 // pagination state
 let roomsPage = 0;
 let maidsPage = 0;
@@ -709,9 +714,40 @@ function confirmAction(message) {
   });
 }
 
-// Enlazar botones
-if (btnAddRoom) btnAddRoom.addEventListener("click", addRoomModal);
-if (btnAddMaid) btnAddMaid.addEventListener("click", addMaidModal);
+// Enlazar botones con soporte táctil mejorado
+if (btnAddRoom) {
+  btnAddRoom.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('btnAddRoom clicked');
+    addRoomModal();
+  }, { passive: false });
+  
+  // Agregar soporte táctil explícito para móviles
+  btnAddRoom.addEventListener("touchend", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('btnAddRoom touched');
+    addRoomModal();
+  }, { passive: false });
+}
+
+if (btnAddMaid) {
+  btnAddMaid.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('btnAddMaid clicked');
+    addMaidModal();
+  }, { passive: false });
+  
+  // Agregar soporte táctil explícito para móviles
+  btnAddMaid.addEventListener("touchend", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('btnAddMaid touched');
+    addMaidModal();
+  }, { passive: false });
+}
 
 // Cerrar modal al clicar fuera
 if (modal)
