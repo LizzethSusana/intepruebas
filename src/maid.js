@@ -84,9 +84,13 @@ export async function render() {
       const statusLower = String(r.status || "").toLowerCase();
       if (statusLower.includes("suc") || statusLower === "dirty") {
         const btnClean = document.createElement("button");
+        btnClean.type = 'button';
         btnClean.className = "btn btn-sm btn-success";
+        btnClean.title = 'Marcar como limpia';
         btnClean.innerHTML = '<i class="bi bi-broom"></i>Marcar limpia';
-        btnClean.addEventListener("click", async () => {
+        btnClean.addEventListener("click", async (ev) => {
+          ev.stopPropagation();
+          console.log('btnClean clicked (assigned list):', r.id);
           const ok = await confirmAction(
             "¿Marcar habitación " + r.id + " como limpia?"
           );
@@ -143,9 +147,13 @@ export async function render() {
       // show clean button when status indicates 'sucia' / 'sucio' (any camarera can clean)
       if (statusLower.includes("suc") || statusLower === "dirty") {
         const btnClean = document.createElement("button");
+        btnClean.type = 'button';
         btnClean.className = "btn btn-sm btn-success";
+        btnClean.title = 'Marcar como limpia';
         btnClean.innerHTML = '<i class="bi bi-broom"></i>Marcar limpia';
-        btnClean.addEventListener("click", async () => {
+        btnClean.addEventListener("click", async (ev) => {
+          ev.stopPropagation();
+          console.log('btnClean clicked (all rooms list):', r.id);
           const ok = await confirmAction(
             "¿Marcar habitación " + r.id + " como limpia?"
           );
@@ -253,7 +261,38 @@ function toBase64(file) {
   });
 }
 
-function openReportModal(room) {
+// Detectar si el dispositivo cuenta con cámara trasera.
+// Estrategia:
+// 1) Usar enumerateDevices() y buscar 'videoinput' con label que indique 'back/rear/environment/trasera'.
+// 2) Si no hay labels (sin permiso), intentar solicitar `getUserMedia` con `facingMode: { exact: 'environment' }`.
+//    Si esto tiene éxito, se considera que hay cámara trasera (cerrando el stream inmediatamente).
+async function hasRearCamera() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return false;
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoInputs = devices.filter((d) => d.kind === 'videoinput');
+    if (!videoInputs.length) return false;
+
+    const anyLabeled = videoInputs.some((d) => d.label && d.label.trim().length > 0);
+    if (anyLabeled) {
+      const re = /back|rear|environment|trasera|trasero|posterior/i;
+      return videoInputs.some((d) => re.test(d.label));
+    }
+
+    // Sin labels (probablemente permisos no otorgados) -> intentar exact facingMode (puede pedir permiso)
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'environment' } } });
+      s.getTracks().forEach((t) => t.stop());
+      return true;
+    } catch (e) {
+      return false;
+    }
+  } catch (e) {
+    return false;
+  }
+}
+
+async function openReportModal(room) {
   modal.classList.remove("hidden");
   modal.classList.add("show");
 
@@ -297,6 +336,27 @@ function openReportModal(room) {
   const captureBtn = document.getElementById("capture");
   const thumbs = document.getElementById("thumbs");
   const photoCount = document.getElementById("photoCount");
+
+  // Comprobar si hay cámara trasera y deshabilitar control si no existe
+  try {
+    const rear = await hasRearCamera();
+    if (!rear) {
+      if (startCamBtn) {
+        startCamBtn.disabled = true;
+        startCamBtn.title = 'No se detectó cámara trasera en este dispositivo';
+      }
+      const cameraArea = document.getElementById('cameraArea');
+      if (cameraArea) {
+        const note = document.createElement('div');
+        note.style.color = '#b8860b';
+        note.style.marginTop = '8px';
+        note.textContent = 'No se detectó cámara trasera en este dispositivo. La captura de fotos no está disponible.';
+        cameraArea.appendChild(note);
+      }
+    }
+  } catch (e) {
+    console.warn('Error verificando cámara trasera', e);
+  }
 
   let stream = null;
   const images = [];
