@@ -16,6 +16,8 @@ const filterBtns = Array.from(document.querySelectorAll(".filters button"));
 const params = new URLSearchParams(location.search);
 const user = params.get("user");
 let currentFilter = "all";
+// cache para saber si el dispositivo tiene cámara trasera
+let rearCameraAvailable = null;
 
 if (!user) {
   alert("Usuario no especificado. Vuelve al login.");
@@ -91,24 +93,47 @@ export async function render() {
         btnClean.addEventListener("click", async (ev) => {
           ev.stopPropagation();
           console.log('btnClean clicked (assigned list):', r.id);
-          const ok = await confirmAction(
-            "¿Marcar habitación " + r.id + " como limpia?"
-          );
-          if (!ok) return;
+          // Marcar inmediatamente como limpia (un solo click)
           r.status = "Limpia";
           r.cleanedBy = user;
           r.cleanedAt = new Date().toISOString();
-          await put("rooms", r);
+          try {
+            await put("rooms", r);
+            console.log('put success (assigned list) room:', r.id);
+          } catch (e) {
+            console.error('put failed (assigned list) room:', r.id, e);
+            await modalError('No se pudo actualizar la habitación: ' + (e && e.message));
+            return;
+          }
           await render();
         });
         rowActions.appendChild(btnClean);
       }
 
       const btnReport = document.createElement("button");
-      btnReport.className = "btn btn-sm btn-danger";
-      btnReport.innerHTML =
-        '<i class="bi bi-exclamation-triangle"></i>Levantar siniestro';
-      btnReport.addEventListener("click", () => openReportModal(r));
+          btnReport.className = "btn btn-sm btn-danger";
+          btnReport.type = 'button';
+          btnReport.innerHTML = '<i class="bi bi-exclamation-triangle"></i>Levantar siniestro';
+          btnReport.title = 'Levantar siniestro (requiere cámara trasera)';
+          if (rearCameraAvailable === false) {
+            btnReport.disabled = true;
+            btnReport.setAttribute('aria-disabled', 'true');
+            btnReport.classList.add('disabled');
+            btnReport.title = 'Función no disponible en dispositivos sin cámara trasera';
+          }
+          btnReport.addEventListener("click", async (ev) => {
+            ev.stopPropagation();
+            try {
+              if (rearCameraAvailable === null) rearCameraAvailable = await hasRearCamera();
+            } catch (e) {
+              rearCameraAvailable = false;
+            }
+            if (!rearCameraAvailable) {
+              await modalError('Función no habilitada en dispositivos sin cámara trasera');
+              return;
+            }
+            openReportModal(r);
+          });
       rowActions.appendChild(btnReport);
 
       el.appendChild(rowActions);
@@ -154,14 +179,18 @@ export async function render() {
         btnClean.addEventListener("click", async (ev) => {
           ev.stopPropagation();
           console.log('btnClean clicked (all rooms list):', r.id);
-          const ok = await confirmAction(
-            "¿Marcar habitación " + r.id + " como limpia?"
-          );
-          if (!ok) return;
+          // Marcar inmediatamente como limpia (un solo click)
           r.status = "Limpia";
           r.cleanedBy = user;
           r.cleanedAt = new Date().toISOString();
-          await put("rooms", r);
+          try {
+            await put("rooms", r);
+            console.log('put success (all rooms list) room:', r.id);
+          } catch (e) {
+            console.error('put failed (all rooms list) room:', r.id, e);
+            await modalError('No se pudo actualizar la habitación: ' + (e && e.message));
+            return;
+          }
           await render();
         });
         rowActions.appendChild(btnClean);
@@ -170,10 +199,29 @@ export async function render() {
       // show report button only if assigned to current user
       if (r.maid === user) {
         const btnReport = document.createElement("button");
-        btnReport.className = "btn btn-sm btn-danger";
-        btnReport.innerHTML =
-          '<i class="bi bi-exclamation-triangle"></i>Levantar siniestro';
-        btnReport.addEventListener("click", () => openReportModal(r));
+        btnReport.className = 'btn btn-sm btn-danger';
+        btnReport.type = 'button';
+        btnReport.innerHTML = '<i class="bi bi-exclamation-triangle"></i>Levantar siniestro';
+        btnReport.title = 'Levantar siniestro (requiere cámara trasera)';
+        if (rearCameraAvailable === false) {
+          btnReport.disabled = true;
+          btnReport.setAttribute('aria-disabled', 'true');
+          btnReport.classList.add('disabled');
+          btnReport.title = 'Función no disponible en dispositivos sin cámara trasera';
+        }
+        btnReport.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          try {
+            if (rearCameraAvailable === null) rearCameraAvailable = await hasRearCamera();
+          } catch (e) {
+            rearCameraAvailable = false;
+          }
+          if (!rearCameraAvailable) {
+            await modalError('Función no habilitada en dispositivos sin cámara trasera');
+            return;
+          }
+          openReportModal(r);
+        });
         rowActions.appendChild(btnReport);
       }
 
@@ -540,6 +588,12 @@ async function openReportModal(room) {
 
 async function init() {
   await openDB();
+  // detectar cámara trasera al iniciar y cachear resultado (evita prompts repetidos)
+  try {
+    rearCameraAvailable = await hasRearCamera();
+  } catch (e) {
+    rearCameraAvailable = false;
+  }
   // set default active filter button
   const btnAll = document.querySelector('.filters button[data-filter="all"]');
   if (btnAll) btnAll.classList.add("active");
