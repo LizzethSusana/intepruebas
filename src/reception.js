@@ -292,12 +292,13 @@ async function renderAll() {
     const date = rep.createdAt ? new Date(rep.createdAt).toLocaleString() : '';
     const room = rep.roomId || '';
     const subject = rep.subject || '—';
-    const desc = rep.description || '(sin descripción)';
+
     const tdDate = document.createElement('td');
     tdDate.textContent = date;
     const tdRoom = document.createElement('td');
     tdRoom.textContent = room;
-    // intentar resolver la camarera del reporte
+
+    // resolver camarera o autor del reporte
     const tdMaid = document.createElement('td');
     let maidDisplay = '';
     if (rep.maidId) {
@@ -322,29 +323,87 @@ async function renderAll() {
     tdSubject.textContent = subject;
     tdSubject.style.fontWeight = '600';
 
-    const tdDesc = document.createElement('td');
-    // limitar texto a 150 caracteres visuales
-    tdDesc.textContent = desc.length > 150 ? desc.slice(0, 147) + '...' : desc;
-    const tdImgs = document.createElement('td');
-    if (rep.images && rep.images.length) {
-      const btn = document.createElement('button');
-      btn.className = 'btn btn-sm view-img-btn';
-      btn.innerHTML = `<i class="bi bi-image"></i> Ver imágenes (${rep.images.length})`;
-      btn.addEventListener('click', () => {
-        if (window.openImagesModal) window.openImagesModal(rep.images);
-      });
-      tdImgs.appendChild(btn);
-    } else {
-      tdImgs.textContent = '—';
-    }
+    // Resumen: botón que abre modal con todos los datos y fotos
+    const tdSummary = document.createElement('td');
+    const btnSummary = document.createElement('button');
+    btnSummary.type = 'button';
+    btnSummary.className = 'btn btn-sm btn-outline-primary';
+    btnSummary.textContent = 'Ver resumen';
+    btnSummary.title = 'Ver todos los detalles del reporte';
+    btnSummary.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showReportSummaryModal(rep, maids);
+    });
+    tdSummary.appendChild(btnSummary);
 
     tr.appendChild(tdDate);
     tr.appendChild(tdRoom);
     tr.appendChild(tdMaid);
     tr.appendChild(tdSubject);
-    tr.appendChild(tdDesc);
-    tr.appendChild(tdImgs);
+    tr.appendChild(tdSummary);
     reportsEl.appendChild(tr);
+  }
+
+  // Función auxiliar para mostrar modal con detalle completo del reporte
+  function showReportSummaryModal(rep, maidsList) {
+    const date = rep.createdAt ? new Date(rep.createdAt).toLocaleString() : '—';
+    const room = rep.roomId || '—';
+    let maidDisplay = '—';
+    if (rep.maidId) {
+      const found = maidsList.find(m => (m.id || m.email) === rep.maidId);
+      maidDisplay = found ? (found.name || found.email || found.id) : rep.maidId;
+    } else if (rep.createdBy && rep.createdBy !== 'recepcion') {
+      const found = maidsList.find(m => (m.id || m.email) === rep.createdBy);
+      maidDisplay = found ? (found.name || found.email || found.id) : rep.createdBy;
+    } else if (Array.isArray(rep.maids) && rep.maids.length) {
+      maidDisplay = rep.maids
+        .map(x => {
+          const f = maidsList.find(m => (m.id || m.email) === x);
+          return f ? (f.name || f.email || f.id) : x;
+        })
+        .join(', ');
+    } else {
+      maidDisplay = rep.createdBy || '—';
+    }
+
+    modal.classList.remove('hidden');
+    modal.innerHTML = `<div class="modal-content" role="dialog">
+      <h3>Detalle del reporte</h3>
+      <p><strong>Fecha:</strong> ${date}</p>
+      <p><strong>Habitación:</strong> ${room}</p>
+      <p><strong>Camarera:</strong> ${maidDisplay}</p>
+      <p><strong>Tema:</strong> ${rep.subject || '—'}</p>
+      <p><strong>Descripción:</strong></p>
+      <p style="white-space:pre-wrap;">${rep.description || '(sin descripción)'}</p>
+      <div id="reportImages" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+      </div>
+      <div class="row" style="margin-top:12px;justify-content:flex-end;"><button id="closeModalReport" class="btn btn-secondary">Cerrar</button></div>
+    </div>`;
+
+    const imgsContainer = document.getElementById('reportImages');
+    if (rep.images && rep.images.length) {
+      rep.images.forEach((src, idx) => {
+        const d = document.createElement('div');
+        d.style.width = '100px';
+        d.style.height = '80px';
+        d.style.border = '1px solid #ddd';
+        d.style.borderRadius = '6px';
+        d.style.overflow = 'hidden';
+        d.style.cursor = 'pointer';
+        const img = document.createElement('img');
+        img.src = src;
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'cover';
+        d.appendChild(img);
+        d.onclick = () => { if (window.openImagesModal) window.openImagesModal(rep.images); };
+        imgsContainer.appendChild(d);
+      });
+    } else {
+      imgsContainer.textContent = '(sin imágenes)';
+    }
+
+    document.getElementById('closeModalReport').onclick = () => modal.classList.add('hidden');
   }
   // pagination controls for reports (centrada en #reportsPager)
   const reportsPagerEl = document.getElementById('reportsPager');
