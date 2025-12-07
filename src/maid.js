@@ -446,7 +446,7 @@ async function openReportModal(room) {
       <div id="thumbs" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"></div>
     </div>
     
-    <div class="row">
+    <div class="row modal-actions">
       <button id="send" class="btn btn-primary">Enviar</button>
       <button id="close" class="btn btn-secondary">Cerrar</button>
     </div>
@@ -631,6 +631,7 @@ async function openReportModal(room) {
       subject: subject,
       description: desc,
       images: finalImages,
+      status: "Pendiente",
       createdAt: new Date().toISOString(),
       createdBy: user,
     };

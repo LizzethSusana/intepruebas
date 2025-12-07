@@ -65,6 +65,7 @@ export async function openReportModal(room, maids) {
       maidId: selectedMaid,
       description: desc,
       images,
+      status: 'Pendiente',
       createdAt: new Date().toISOString(),
       createdBy: selectedMaid || 'recepcion',
     }

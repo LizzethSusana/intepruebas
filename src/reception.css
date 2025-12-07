@@ -692,7 +692,7 @@ table {
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: var(--shadow);
-  min-width: 700px; /* Asegura que la tabla mantenga su ancho mínimo con columna Tema */
+  min-width: 820px; /* Asegura espacio para columna Tema + Estado */
 }
 
 thead {
@@ -706,6 +706,22 @@ td {
   border-bottom: 1px solid #e6e6e6;
   text-align: left;
   white-space: nowrap; /* Evita que el texto se corte */
+}
+
+.report-status {
+  min-width: 140px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #dfe3eb;
+  background: #f7f9fc;
+  font-weight: 600;
+  color: #1f3b57;
+}
+
+.report-status:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.15);
 }
 
 /* Responsividad en tabletas y móviles */
@@ -738,6 +754,12 @@ td {
   td {
     padding: 8px 6px;
     font-size: 0.7rem;
+  }
+
+  .report-status {
+    min-width: 120px;
+    padding: 10px 8px;
+    font-size: 0.85rem;
   }
 
   /* Descripción con scroll interno si es muy larga */

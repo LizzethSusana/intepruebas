@@ -2,8 +2,8 @@
 // MÓDULO DE REPORTES
 // =====================
 
-import { getAll } from '../../idb.js'
-import { REPORTS_PER_PAGE } from '../shared/constants.js'
+import { getAll, get, put } from '../../idb.js'
+import { REPORTS_PER_PAGE, ROOM_STATUS } from '../shared/constants.js'
 import { showReportDetailModal } from './reports-modal.js'
 
 let reportsPage = 0
@@ -47,6 +47,7 @@ function createReportRow(report, maids) {
   const room = report.roomId || '—'
   const subject = report.subject || '—'
   const maidDisplay = resolveMaidName(report, maids)
+  const status = report.status || 'Pendiente'
 
   const tdDate = document.createElement('td')
   tdDate.textContent = date
@@ -61,6 +62,29 @@ function createReportRow(report, maids) {
   tdSubject.textContent = subject
   tdSubject.style.fontWeight = '600'
 
+  const tdStatus = document.createElement('td')
+  const statusSelect = document.createElement('select')
+  statusSelect.className = 'report-status'
+  statusSelect.innerHTML = `
+    <option value="Pendiente" ${status === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+    <option value="Habilitado" ${status === 'Habilitado' ? 'selected' : ''}>Habilitado</option>
+  `
+  statusSelect.addEventListener('change', async () => {
+    const newStatus = statusSelect.value
+    statusSelect.disabled = true
+    try {
+      await updateReportStatus(report, newStatus)
+      location.reload()
+    } catch (e) {
+      console.error('No se pudo actualizar el estado del reporte', e)
+      alert('No se pudo actualizar el estado. Intenta de nuevo.')
+      statusSelect.value = status
+    } finally {
+      statusSelect.disabled = false
+    }
+  })
+  tdStatus.appendChild(statusSelect)
+
   const tdResumen = document.createElement('td')
   const btnVerMas = document.createElement('button')
   btnVerMas.className = 'btn btn-sm btn-info'
@@ -72,6 +96,7 @@ function createReportRow(report, maids) {
   tr.appendChild(tdRoom)
   tr.appendChild(tdMaid)
   tr.appendChild(tdSubject)
+  tr.appendChild(tdStatus)
   tr.appendChild(tdResumen)
 
   return tr
@@ -161,4 +186,26 @@ export function getReportsPage() {
  */
 export function setReportsPage(page) {
   reportsPage = page
+}
+
+/**
+ * Actualiza el estado del reporte y habilita/bloquea la habitación
+ * @param {Object} report
+ * @param {string} newStatus
+ */
+async function updateReportStatus(report, newStatus) {
+  const updatedReport = { ...report, status: newStatus }
+  await put('reports', updatedReport)
+
+  if (!report.roomId) return
+
+  try {
+    const room = await get('rooms', report.roomId)
+    if (!room) return
+
+    room.status = newStatus === 'Habilitado' ? ROOM_STATUS.DIRTY : ROOM_STATUS.BLOCKED
+    await put('rooms', room)
+  } catch (e) {
+    console.warn('No se pudo actualizar la habitación vinculada al reporte', e)
+  }
 }
