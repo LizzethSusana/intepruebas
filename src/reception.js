@@ -393,17 +393,12 @@ async function renderAll() {
   )
   for (const rep of reportsPageItems) {
     const tr = document.createElement('tr');
-    const date = rep.createdAt ? new Date(rep.createdAt).toLocaleString() : '';
-    const room = rep.roomId || '';
+    const date = rep.createdAt ? new Date(rep.createdAt).toLocaleString() : '—';
+    const room = rep.roomId || '—';
     const subject = rep.subject || '—';
-    const desc = rep.description || '(sin descripción)';
-    const tdDate = document.createElement('td');
-    tdDate.textContent = date;
-    const tdRoom = document.createElement('td');
-    tdRoom.textContent = room;
+    
     // intentar resolver la camarera del reporte
-    const tdMaid = document.createElement('td');
-    let maidDisplay = '';
+    let maidDisplay = '—';
     if (rep.maidId) {
       const found = maids.find((m) => (m.id || m.email) === rep.maidId)
       maidDisplay = found ? found.name || found.email || found.id : rep.maidId
@@ -422,39 +417,39 @@ async function renderAll() {
     } else {
       maidDisplay = rep.createdBy || '—'
     }
-    tdMaid.textContent = maidDisplay
+
+    const tdDate = document.createElement('td');
+    tdDate.textContent = date;
+    
+    const tdRoom = document.createElement('td');
+    tdRoom.textContent = room;
+    
+    const tdMaid = document.createElement('td');
+    tdMaid.textContent = maidDisplay;
 
     const tdSubject = document.createElement('td')
     tdSubject.textContent = subject
     tdSubject.style.fontWeight = '600'
 
-    const tdDesc = document.createElement('td');
-    // limitar texto a 150 caracteres visuales
-    tdDesc.textContent = desc.length > 150 ? desc.slice(0, 147) + '...' : desc;
-    const tdImgs = document.createElement('td');
-    if (rep.images && rep.images.length) {
-      const btn = document.createElement('button');
-      btn.className = 'btn btn-sm view-img-btn';
-      btn.innerHTML = `<i class="bi bi-image"></i> Ver imágenes (${rep.images.length})`;
-      btn.addEventListener('click', () => {
-        if (window.openImagesModal) window.openImagesModal(rep.images);
-      });
-      tdImgs.appendChild(btn);
-    } else {
-      tdImgs.textContent = '—';
-    }
+    const tdResumen = document.createElement('td');
+    const btnVerMas = document.createElement('button');
+    btnVerMas.className = 'btn btn-sm btn-info';
+    btnVerMas.innerHTML = '<i class="bi bi-eye"></i> Ver más';
+    btnVerMas.addEventListener('click', () => {
+      showReportDetailModal(rep, maids);
+    });
+    tdResumen.appendChild(btnVerMas);
 
     tr.appendChild(tdDate);
     tr.appendChild(tdRoom);
     tr.appendChild(tdMaid);
     tr.appendChild(tdSubject);
-    tr.appendChild(tdDesc);
-    tr.appendChild(tdImgs);
+    tr.appendChild(tdResumen);
     reportsEl.appendChild(tr);
   }
 
   // Función auxiliar para mostrar modal con detalle completo del reporte
-  function showReportSummaryModal(rep, maidsList) {
+  function showReportDetailModal(rep, maidsList) {
     const date = rep.createdAt ? new Date(rep.createdAt).toLocaleString() : '—';
     const room = rep.roomId || '—';
     let maidDisplay = '—';
@@ -476,29 +471,62 @@ async function renderAll() {
     }
 
     modal.classList.remove('hidden');
-    modal.innerHTML = `<div class="modal-content" role="dialog">
-      <h3>Detalle del reporte</h3>
-      <p><strong>Fecha:</strong> ${date}</p>
-      <p><strong>Habitación:</strong> ${room}</p>
-      <p><strong>Camarera:</strong> ${maidDisplay}</p>
-      <p><st  rong>Tema:</strong> ${rep.subject || '—'}</p>
-      <p><strong>Descripción:</strong></p>
-      <p style="white-space:pre-wrap;">${rep.description || '(sin descripción)'}</p>
-      <div id="reportImages" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+    modal.innerHTML = `<div class="modal-content" role="dialog" style="max-width: 600px;">
+      <h3 style="color: var(--primary-dark); margin-bottom: 20px;">Detalle del Reporte</h3>
+      
+      <div style="background: #f8f9fc; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+        <div style="display: grid; grid-template-columns: 120px 1fr; gap: 12px; font-size: 0.95rem;">
+          <div style="font-weight: 600; color: #555;">Fecha:</div>
+          <div>${date}</div>
+          
+          <div style="font-weight: 600; color: #555;">Habitación:</div>
+          <div style="font-weight: 600; color: var(--primary);">${room}</div>
+          
+          <div style="font-weight: 600; color: #555;">Camarera:</div>
+          <div>${maidDisplay}</div>
+          
+          <div style="font-weight: 600; color: #555;">Tema:</div>
+          <div style="font-weight: 600; color: #d9534f;">${rep.subject || '—'}</div>
+        </div>
       </div>
-      <div class="row" style="margin-top:12px;justify-content:flex-end;"><button id="closeModalReport" class="btn btn-secondary">Cerrar</button></div>
+
+      <div style="margin-bottom: 16px;">
+        <h4 style="font-size: 1rem; color: #555; margin-bottom: 8px;">Descripción:</h4>
+        <div style="background: #fff; border: 1px solid #e3e8ef; padding: 12px; border-radius: 6px; white-space: pre-wrap; line-height: 1.6;">
+          ${rep.description || '(sin descripción)'}
+        </div>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <h4 style="font-size: 1rem; color: #555; margin-bottom: 8px;">Imágenes:</h4>
+        <div id="reportImages" style="display:flex; gap:12px; flex-wrap:wrap;">
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end;">
+        <button id="closeModalReport" class="btn btn-sm btn-secondary">Cerrar</button>
+      </div>
     </div>`;
 
     const imgsContainer = document.getElementById('reportImages');
     if (rep.images && rep.images.length) {
       rep.images.forEach((src, idx) => {
         const d = document.createElement('div');
-        d.style.width = '100px';
-        d.style.height = '80px';
-        d.style.border = '1px solid #ddd';
-        d.style.borderRadius = '6px';
+        d.style.width = '120px';
+        d.style.height = '120px';
+        d.style.border = '2px solid #ddd';
+        d.style.borderRadius = '8px';
         d.style.overflow = 'hidden';
         d.style.cursor = 'pointer';
+        d.style.transition = 'transform 0.2s, border-color 0.2s';
+        d.onmouseenter = () => {
+          d.style.transform = 'scale(1.05)';
+          d.style.borderColor = 'var(--primary)';
+        };
+        d.onmouseleave = () => {
+          d.style.transform = 'scale(1)';
+          d.style.borderColor = '#ddd';
+        };
         const img = document.createElement('img');
         img.src = src;
         img.style.width = '100%';
@@ -509,7 +537,11 @@ async function renderAll() {
         imgsContainer.appendChild(d);
       });
     } else {
-      imgsContainer.textContent = '(sin imágenes)';
+      const noImgs = document.createElement('div');
+      noImgs.style.color = '#999';
+      noImgs.style.fontStyle = 'italic';
+      noImgs.textContent = 'No hay imágenes adjuntas';
+      imgsContainer.appendChild(noImgs);
     }
 
     document.getElementById('closeModalReport').onclick = () => modal.classList.add('hidden');
@@ -565,7 +597,25 @@ async function addRoomModal() {
   // Limpiar estilos inline previos para asegurar que el modal se muestre correctamente
   modal.style.display = ''
   modal.classList.remove('hidden')
-  modal.innerHTML = `<div class="modal-content" role="dialog"><h3>Nueva Habitación</h3><label>Número de habitación</label><input id="newRoomNumber" required /><label>Estado</label><select id="newRoomStatus"><option value="Limpia">Limpia</option><option value="Sucio">Sucio</option><option value="Bloqueada">Bloqueada</option></select><label>Asignar camarera</label><select id="newRoomMaid" required>${maidOptions}</select><label class="inline-check"><input type="checkbox" id="newRoomRented" /> <span>Ocupada</span></label><div class="row"><button id="saveRoom">Guardar</button><button id="closeModal">Cerrar</button></div></div>`
+  modal.innerHTML = `
+    <div class="modal-content" role="dialog">
+      <h3>Nueva Habitación</h3>
+      <label>Número de habitación</label>
+      <input id="newRoomNumber" required />
+      <label>Estado</label>
+      <select id="newRoomStatus">
+        <option value="Limpia">Limpia</option>
+        <option value="Sucio">Sucio</option>
+        <option value="Bloqueada">Bloqueada</option>
+      </select>
+      <label>Asignar camarera</label>
+      <select id="newRoomMaid" required>${maidOptions}</select>
+      <label class="inline-check"><input type="checkbox" id="newRoomRented" /> <span>Ocupada</span></label>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+        <button id="saveRoom" class="btn btn-sm btn-primary">Guardar</button>
+        <button id="closeModal" class="btn btn-sm btn-secondary">Cerrar</button>
+      </div>
+    </div>`
   document.getElementById('closeModal').onclick = () =>
     modal.classList.add('hidden')
   // style buttons
@@ -613,7 +663,26 @@ async function editRoomModal(room) {
   // Limpiar estilos inline previos para asegurar que el modal se muestre correctamente
   modal.style.display = ''
   modal.classList.remove('hidden')
-  modal.innerHTML = `<div class="modal-content" role="dialog"><h3>Editar Habitación ${room.id}</h3><label>Estado</label><select id="editRoomStatus"><option value="Limpia">Limpia</option><option value="Sucio">Sucio</option><option value="Bloqueada">Bloqueada</option></select><label>Asignar camarera (opcional)</label><select id="editRoomMaid"><option value="">-- Sin asignar --</option>${maidOptions}</select><label class="inline-check"><input type="checkbox" id="editRoomRented" /> <span>Ocupada</span></label><div class="row"><button id="saveEditRoom">Guardar</button><button id="closeModal">Cerrar</button></div></div>`
+  modal.innerHTML = `
+    <div class="modal-content" role="dialog">
+      <h3>Editar Habitación ${room.id}</h3>
+      <label>Estado</label>
+      <select id="editRoomStatus">
+        <option value="Limpia">Limpia</option>
+        <option value="Sucio">Sucio</option>
+        <option value="Bloqueada">Bloqueada</option>
+      </select>
+      <label>Asignar camarera (opcional)</label>
+      <select id="editRoomMaid">
+        <option value="">-- Sin asignar --</option>
+        ${maidOptions}
+      </select>
+      <label class="inline-check"><input type="checkbox" id="editRoomRented" /> <span>Ocupada</span></label>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+        <button id="saveEditRoom" class="btn btn-sm btn-primary">Guardar</button>
+        <button id="closeModal" class="btn btn-sm btn-secondary">Cerrar</button>
+      </div>
+    </div>`
   const statusEl = document.getElementById('editRoomStatus')
   if (statusEl) statusEl.value = room.status || 'Limpia'
   const rentedEl = document.getElementById('editRoomRented')
@@ -644,21 +713,27 @@ function addMaidModal() {
   // Limpiar estilos inline previos para asegurar que el modal se muestre correctamente
   modal.style.display = ''
   modal.classList.remove('hidden')
-  modal.innerHTML = `<div class="modal-content" role="dialog">
-    <h3>Nueva Camarera</h3>
-    <label for="maidName">Nombre</label>
-    <input id="maidName" required/>
-    <label for="maidEmail">Correo</label>
-    <input id="maidEmail" type="email" required/>
-    <label for="maidPassword">Contraseña (opcional)</label>
-    <input id="maidPassword" type="password" placeholder="Opcional" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" />
-    <div class="row" style="justify-content:flex-end; gap:8px; margin-top:6px;">
-      <button id="pwdSelect" type="button" class="btn btn-sm btn-outline-secondary">Seleccionar</button>
-    </div>
-    <label for="maidStatus">Estado</label>
-    <select id="maidStatus"><option value="Disponible">Disponible</option><option value="No disponible">No disponible</option></select>
-    <div class="row"><button id="saveMaid">Guardar</button><button id="closeModal">Cerrar</button></div>
-  </div>`
+  modal.innerHTML = `
+    <div class="modal-content" role="dialog">
+      <h3>Nueva Camarera</h3>
+      <label for="maidName">Nombre</label>
+      <input id="maidName" required/>
+      <label for="maidEmail">Correo</label>
+      <input id="maidEmail" type="email" required/>
+      <label for="maidPassword">Contraseña</label>
+      <div style="position: relative;">
+        <input id="maidPassword" type="password" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" style="padding-right: 40px;" />
+        <button id="pwdToggle" type="button" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.2rem; color: #666; padding: 4px 8px;" title="Mostrar/Ocultar contraseña">
+          <i class="bi bi-eye-slash" id="eyeIcon"></i>
+        </button>
+      </div>
+      <label for="maidStatus">Estado</label>
+      <select id="maidStatus"><option value="Disponible">Disponible</option><option value="No disponible">No disponible</option></select>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+        <button id="saveMaid" class="btn btn-sm btn-primary">Guardar</button>
+        <button id="closeModal" class="btn btn-sm btn-secondary">Cerrar</button>
+      </div>
+    </div>`
   document.getElementById('closeModal').onclick = () =>
     modal.classList.add('hidden')
   // style buttons
@@ -667,26 +742,24 @@ function addMaidModal() {
   if (saveMaidBtn) saveMaidBtn.className = 'btn btn-primary'
   if (closeMaidBtn) closeMaidBtn.className = 'btn btn-secondary'
 
-  // Controles de contraseña: mostrar/ocultar y seleccionar
+  // Control de contraseña: mostrar/ocultar con ojito y input completamente clickeable
   const pwdInput = document.getElementById('maidPassword')
   const pwdToggle = document.getElementById('pwdToggle')
-  const pwdSelect = document.getElementById('pwdSelect')
-  if (pwdToggle && pwdInput) {
-    pwdToggle.onclick = () => {
-      pwdInput.type = pwdInput.type === 'password' ? 'text' : 'password'
-      pwdToggle.textContent =
-        pwdInput.type === 'password' ? 'Mostrar' : 'Ocultar'
+  const eyeIcon = document.getElementById('eyeIcon')
+  if (pwdToggle && pwdInput && eyeIcon) {
+    pwdToggle.onclick = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const isPassword = pwdInput.type === 'password'
+      pwdInput.type = isPassword ? 'text' : 'password'
+      eyeIcon.className = isPassword ? 'bi bi-eye' : 'bi bi-eye-slash'
       pwdInput.focus()
     }
   }
-  if (pwdSelect && pwdInput) {
-    pwdSelect.onclick = () => {
+  if (pwdInput) {
+    pwdInput.addEventListener('click', () => {
       pwdInput.focus()
-      pwdInput.select()
-      try {
-        document.execCommand('copy')
-      } catch (_) {}
-    }
+    })
   }
 
   document.getElementById('saveMaid').onclick = async () => {
@@ -728,10 +801,11 @@ function editMaidModal(maid) {
              value="${maid.email || maid.id || ''}" required/>
 
       <label for="editMaidPassword">Nueva Contraseña (opcional)</label>
-      <input id="editMaidPassword" type="password" placeholder="Dejar vacío para no cambiar" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <div class="row" style="justify-content:flex-end; gap:8px; margin-top:6px;">
-        <button id="editPwdToggle" type="button" class="btn btn-sm btn-secondary">Mostrar</button>
-        <button id="editPwdSelect" type="button" class="btn btn-sm btn-outline-secondary">Seleccionar</button>
+      <div style="position: relative;">
+        <input id="editMaidPassword" type="password" placeholder="Dejar vacío para no cambiar" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" style="padding-right: 40px;"/>
+        <button id="editPwdToggle" type="button" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.2rem; color: #666; padding: 4px 8px;" title="Mostrar/Ocultar contraseña">
+          <i class="bi bi-eye-slash" id="eyeIcon"></i>
+        </button>
       </div>
 
       <label>Estado</label>
@@ -741,9 +815,9 @@ function editMaidModal(maid) {
         <option value="Ocupado">Ocupado</option>
       </select>
 
-      <div class="row">
-        <button id="saveEditMaid">Guardar</button>
-        <button id="closeModal">Cerrar</button>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+        <button id="saveEditMaid" class="btn btn-sm btn-primary">Guardar</button>
+        <button id="closeModal" class="btn btn-sm btn-secondary">Cerrar</button>
       </div>
     </div>`
 
@@ -753,30 +827,26 @@ function editMaidModal(maid) {
   const statusEl = document.getElementById('editMaidStatus')
   statusEl.value = maid.status || 'Disponible'
 
-  const saveBtn = document.getElementById('saveEditMaid')
-  saveBtn.className = 'btn btn-primary'
-  document.getElementById('closeModal').className = 'btn btn-secondary'
-
   // Controles de contraseña en edición
   const editPwdInput = document.getElementById('editMaidPassword')
   const editPwdToggle = document.getElementById('editPwdToggle')
-  const editPwdSelect = document.getElementById('editPwdSelect')
-  if (editPwdToggle && editPwdInput) {
-    editPwdToggle.onclick = () => {
-      editPwdInput.type = editPwdInput.type === 'password' ? 'text' : 'password'
-      editPwdToggle.textContent =
-        editPwdInput.type === 'password' ? 'Mostrar' : 'Ocultar'
-      editPwdInput.focus()
+  const eyeIcon = document.getElementById('eyeIcon')
+  
+  if (editPwdToggle && editPwdInput && eyeIcon) {
+    editPwdToggle.onclick = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const isPassword = editPwdInput.type === 'password'
+      editPwdInput.type = isPassword ? 'text' : 'password'
+      eyeIcon.className = isPassword ? 'bi bi-eye' : 'bi bi-eye-slash'
     }
   }
-  if (editPwdSelect && editPwdInput) {
-    editPwdSelect.onclick = () => {
+  
+  // Input clickeable en cualquier parte
+  if (editPwdInput) {
+    editPwdInput.addEventListener('click', () => {
       editPwdInput.focus()
-      editPwdInput.select()
-      try {
-        document.execCommand('copy')
-      } catch (_) {}
-    }
+    })
   }
 
   document.getElementById('saveEditMaid').onclick = async () => {
@@ -921,9 +991,9 @@ function confirmAction(message) {
     modal.innerHTML = `<div class="modal-content" role="dialog">
       <h4>Confirmar</h4>
       <p>${message}</p>
-      <div class="row" style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
-        <button id="confirmYes" class="btn btn-primary">Sí</button>
-        <button id="confirmNo" class="btn btn-secondary">No</button>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+        <button id="confirmYes" class="btn btn-sm btn-primary">Sí</button>
+        <button id="confirmNo" class="btn btn-sm btn-secondary">No</button>
       </div>
     </div>`
 

@@ -129,19 +129,29 @@ body {
     flex-wrap: wrap;
   }
 
+  .topbar-left {
+    width: 100%;
+    order: 1;
+    margin-bottom: 10px;
+  }
+
   .topbar-left h1 {
     font-size: 1.3rem;
   }
 
   .topbar-nav {
-    order: 3;
-    width: 100%;
-    justify-content: space-between;
+    order: 2;
+    flex: 1;
+    justify-content: flex-start;
     gap: 6px;
   }
 
+  .topbar-right {
+    order: 3;
+  }
+
   .nav-item {
-    flex: 1;
+    flex: 0 0 auto;
     justify-content: center;
     padding: 8px 12px;
     font-size: 0.85rem;
@@ -804,25 +814,36 @@ td {
   .maids-container tbody tr td:nth-child(4) {
     grid-template-columns: auto;
     display: flex;
-    gap: 8px;
+    gap: 4px;
     justify-content: flex-start;
-    flex-wrap: wrap;
+    align-items: flex-end;
   }
 
   .maids-container tbody tr td:nth-child(4)::before {
     display: none;
   }
 
-  /* Asegurar que los botones de acción en la tabla sean clickeables */
+  /* Botones de editar y borrar más pequeños en móvil */
   .maids-container tbody tr td:nth-child(4) button,
   .maids-container tbody tr td:nth-child(4) .btn {
     pointer-events: auto !important;
     cursor: pointer !important;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-    position: relative;
-    z-index: 1;
+    padding: 6px 10px !important;
+    font-size: 0.7rem !important;
+    min-height: 32px !important;
+    min-width: 32px !important;
+    display: inline-flex !important;
+    align-items: flex-end;
+    justify-content: center;
   }
+
+  .maids-container tbody tr td:nth-child(4) button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  z-index: 1;
+}
+
 
   /* Botones de acción más pequeños pero aún táctiles */
   .btn-sm {
@@ -952,9 +973,14 @@ td {
 .modal-content .row {
   margin-top: 15px;
   display: flex;
-  gap: 10px;
-  justify-content: center;
+  gap: 8px;
+  justify-content: flex-end;
   flex-wrap: wrap;
+}
+
+.modal-content .row button {
+  padding: 8px 14px !important;
+  font-size: 0.9rem !important;
 }
 
 /* asegurar campos y botones son grandes y táctiles en móviles */

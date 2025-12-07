@@ -739,7 +739,7 @@ body {
 }
 
 .btn-sm {
-  padding: 8px 12px;
+  padding: 6px 8px;
   font-size: 0.9rem;
   border-radius: 8px;
 }
@@ -753,14 +753,14 @@ body {
 
 @media (max-width: 768px) {
   .btn-sm {
-    padding: 8px 10px;
+    padding: 6px 8px;
     font-size: 0.85rem;
   }
 }
 
 @media (max-width: 414px) {
   .btn-sm {
-    padding: 10px 12px;
+    padding: 6px 8px;
     font-size: 0.85rem;
     border-radius: 8px;
   }
@@ -773,7 +773,7 @@ body {
 /* Mejorar touch targets en móviles */
 @media (max-width: 768px) {
   button, .btn, .filter-btn {
-    min-height: 44px; /* Recomendación de Apple para touch targets */
+    min-height: 25px; /* Recomendación de Apple para touch targets */
   }
 }
 

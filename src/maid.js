@@ -224,7 +224,8 @@ function renderSeatMap(rooms) {
         actions.appendChild(btn);
       }
 
-      if (room && room.maid === user) {
+      // Botón de siniestro siempre disponible (sin importar asignación)
+      if (room) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'btn btn-sm btn-danger';
@@ -485,6 +486,9 @@ async function openReportModal(room) {
       return false;
     }
     
+    // Alerta de permisos
+    alert('Se va a solicitar acceso a la cámara para capturar fotos del reporte.');
+    
     startCamBtn.disabled = true;
     startCamBtn.textContent = "Iniciando...";
     
@@ -579,28 +583,44 @@ async function openReportModal(room) {
     // marcar habitación como bloqueada
     room.status = "Bloqueada";
     await put("rooms", room);
-    try {
-      const resp = await fetch("/api/reports", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(report),
-      });
+    
+    // Verificar conectividad
+    const hasConnection = navigator.onLine;
+    
+    if (hasConnection) {
+      // Intentar enviar si hay conexión
+      try {
+        const resp = await fetch("/api/reports", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(report),
+        });
 
-      if (!resp.ok) throw new Error("Network");
+        if (!resp.ok) throw new Error("Network");
 
-      const rjson = await resp.json();
-      await put("reports", rjson);
+        const rjson = await resp.json();
+        await put("reports", rjson);
 
-      // ✔ Mostrar modal de éxito
-      await modalSuccess("El reporte fue enviado correctamente.");
-    } catch (e) {
-      // guardar offline
+        // ✔ Mostrar modal de éxito
+        await modalSuccess("✓ El reporte fue enviado correctamente.");
+      } catch (e) {
+        // Si falla aunque hay conexión, guardar para sincronizar después
+        await saveReportOffline(report);
+        await put("reports", report);
+        
+        // Notificación de guardado
+        await warningModal(
+          "⚠ No se pudo conectar con el servidor en este momento.\n\nEl reporte se guardará en tu dispositivo y se enviará automáticamente cuando haya conexión disponible."
+        );
+      }
+    } else {
+      // Sin conexión a internet: guardar para enviar después
       await saveReportOffline(report);
       await put("reports", report);
 
-      // ❌ Modal de error
-      await modalError(
-        "No se pudo enviar el reporte. Se guardó para enviar más tarde."
+      // Notificación clara de guardado en modo offline
+      await warningModal(
+        "📱 Sin conexión a internet.\n\nEl reporte se ha guardado en tu dispositivo y se sincronizará automáticamente cuando la conexión se restablezca."
       );
     }
 
@@ -661,6 +681,9 @@ async function init() {
       await modalError('El escaneo de QR requiere cámara trasera. Esta función no está disponible en tu dispositivo.');
       return;
     }
+    
+    // Alerta de permisos
+    alert('Se va a solicitar acceso a la cámara para escanear el código QR de la habitación.');
     
     startQrScanner();
   });
