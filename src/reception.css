@@ -900,9 +900,17 @@ td {
   -webkit-overflow-scrolling: touch;
 }
 
+.modal.hidden {
+  display: none;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
 .modal:not(.hidden) {
   opacity: 1;
   pointer-events: auto;
+  visibility: visible;
 }
 
 .modal-content {
