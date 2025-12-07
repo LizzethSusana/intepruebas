@@ -18,10 +18,29 @@
 <body>
 
 <header class="topbar">
-    <h1>Recepción</h1>
-    <nav>
-        <a href="./index.html">Cerrar sesión</a>
+    <div class="topbar-left">
+        <h1>Recepción</h1>
+    </div>
+    <nav class="topbar-nav">
+        <button class="nav-item" data-section="rooms">
+            <i class="bi bi-door-closed"></i>
+            <span>Habitaciones</span>
+        </button>
+        <button class="nav-item" data-section="maids">
+            <i class="bi bi-people"></i>
+            <span>Camareras</span>
+        </button>
+        <button class="nav-item" data-section="reports">
+            <i class="bi bi-file-text"></i>
+            <span>Reportes</span>
+        </button>
     </nav>
+    <div class="topbar-right">
+        <a href="./index.html" class="btn-logout">
+            <i class="bi bi-box-arrow-right"></i>
+            <span>Cerrar sesión</span>
+        </a>
+    </div>
 </header>
 
 <main class="container">
@@ -36,6 +55,25 @@
                 <button id="btnAddRoom" class="btn btn-primary">
                     <i class="bi bi-plus-circle"></i> Nueva Habitación
                 </button>
+            </div>
+        </div>
+
+        <div class="layout-controls">
+            <div class="layout-form">
+                <div class="form-group">
+                    <label for="layoutFloors">Pisos</label>
+                    <input id="layoutFloors" type="number" min="1"  />
+                </div>
+                <div class="form-group">
+                    <label for="layoutRooms">Habitaciones</label>
+                    <input id="layoutRooms" type="number" min="1"  />
+                </div>
+                <button id="btnSaveLayout" class="btn btn-secondary">
+                    <i class="bi bi-grid-3x3"></i> Generar habitaciones
+                </button>
+            </div>
+            <div class="layout-info">
+                <small id="layoutStatus" class="text-muted"></small>
             </div>
         </div>
 

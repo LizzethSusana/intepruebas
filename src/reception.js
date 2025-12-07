@@ -1,4 +1,4 @@
-import { getAll, put, del } from './idb.js'
+import { getAll, get, put, del } from './idb.js'
 
 // En desarrollo, desregistrar SW para evitar caché de estilos
 if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
@@ -17,6 +17,13 @@ const maidsList = document.getElementById('maidsList')
 const reportsEl = document.getElementById('reportsList')
 const btnAddRoom = document.getElementById('btnAddRoom')
 const btnAddMaid = document.getElementById('btnAddMaid')
+const layoutFloorsInput = document.getElementById('layoutFloors')
+const layoutRoomsInput = document.getElementById('layoutRooms')
+const btnSaveLayout = document.getElementById('btnSaveLayout')
+const layoutStatus = document.getElementById('layoutStatus')
+
+// Referencias para menú de navegación
+const navItems = document.querySelectorAll('.nav-item')
 
 // Debug: verificar que los botones se encuentren
 console.log('btnAddRoom:', btnAddRoom)
@@ -40,6 +47,57 @@ function toBase64(file) {
     fr.onerror = rej
     fr.readAsDataURL(file)
   })
+}
+
+// -------------------
+// Helpers de layout
+// -------------------
+let layoutSettings = null
+
+function padRoom(num, width = 2) {
+  const s = String(num)
+  return s.length >= width ? s : '0'.repeat(width - s.length) + s
+}
+
+async function loadLayoutSettings() {
+  try {
+    const stored = await get('settings', 'hotelLayout')
+    if (stored) layoutSettings = stored
+    if (layoutFloorsInput && stored?.floors)
+      layoutFloorsInput.value = stored.floors
+    if (layoutRoomsInput && stored?.roomsPerFloor)
+      layoutRoomsInput.value = stored.roomsPerFloor
+    if (layoutStatus && stored)
+      layoutStatus.textContent = `El hotel tiene: ${stored.floors} pisos x ${stored.roomsPerFloor} hab.`
+  } catch (e) {
+    console.warn('No se pudo cargar layout', e)
+  }
+}
+
+async function saveLayoutSettings(floors, roomsPerFloor) {
+  layoutSettings = {
+    key: 'hotelLayout',
+    floors,
+    roomsPerFloor,
+    updatedAt: new Date().toISOString(),
+  }
+  await put('settings', layoutSettings)
+}
+
+async function ensureRoomsFromLayout(floors, roomsPerFloor) {
+  const rooms = (await getAll('rooms').catch(() => [])) || []
+  const existing = new Set(rooms.map((r) => String(r.id)))
+  let created = 0
+  for (let f = 1; f <= floors; f++) {
+    for (let n = 1; n <= roomsPerFloor; n++) {
+      const id = `${f}-${padRoom(n)}`
+      if (existing.has(id)) continue
+      const room = { id, status: 'Limpia', maid: null, rented: false }
+      await put('rooms', room)
+      created++
+    }
+  }
+  return created
 }
 
 function getStatusKey(status) {
@@ -117,7 +175,7 @@ async function renderAll() {
       assigned.appendChild(label)
 
       sel = document.createElement('select')
-      sel.innerHTML = maids
+      sel.innerHTML = `<option value="">-- Sin asignar --</option>` + maids
         .map((m) => {
           const disabled = (m.status || '').toLowerCase().includes('no')
             ? 'disabled'
@@ -136,9 +194,11 @@ async function renderAll() {
 
       sel.addEventListener('change', async () => {
         const selected = sel.value
+        // Permitir desasignar (valor vacío)
         if (!selected) {
-          alert('Debe asignar una camarera')
-          sel.value = r.maid || ''
+          r.maid = null
+          await put('rooms', r)
+          await renderAll()
           return
         }
         const chosen = maids.find((m) => (m.id || m.email) === selected)
@@ -159,15 +219,13 @@ async function renderAll() {
     const actions = document.createElement('div')
     actions.className = 'actions'
 
-    // edit room button (solo si NO está bloqueada)
-    if (getStatusKey(r.status) !== 'blocked') {
-      const btnEditRoom = document.createElement('button')
-      btnEditRoom.className = 'btn btn-sm btn-primary'
-      btnEditRoom.innerHTML = '<i class="bi bi-pencil" aria-hidden="true"></i>'
-      btnEditRoom.title = 'Editar habitación'
-      btnEditRoom.addEventListener('click', () => editRoomModal(r))
-      actions.appendChild(btnEditRoom)
-    }
+    // edit room button - siempre disponible
+    const btnEditRoom = document.createElement('button')
+    btnEditRoom.className = 'btn btn-sm btn-primary'
+    btnEditRoom.innerHTML = '<i class="bi bi-pencil" aria-hidden="true"></i>'
+    btnEditRoom.title = 'Editar habitación'
+    btnEditRoom.addEventListener('click', () => editRoomModal(r))
+    actions.appendChild(btnEditRoom)
 
     // show habilitar if blocked
     if (getStatusKey(r.status) === 'blocked') {
@@ -555,7 +613,7 @@ async function editRoomModal(room) {
   // Limpiar estilos inline previos para asegurar que el modal se muestre correctamente
   modal.style.display = ''
   modal.classList.remove('hidden')
-  modal.innerHTML = `<div class="modal-content" role="dialog"><h3>Editar Habitación ${room.id}</h3><label>Estado</label><select id="editRoomStatus"><option value="Limpia">Limpia</option><option value="Sucio">Sucio</option><option value="Bloqueada">Bloqueada</option></select><label>Asignar camarera</label><select id="editRoomMaid" required>${maidOptions}</select><label class="inline-check"><input type="checkbox" id="editRoomRented" /> <span>Ocupada</span></label><div class="row"><button id="saveEditRoom">Guardar</button><button id="closeModal">Cerrar</button></div></div>`
+  modal.innerHTML = `<div class="modal-content" role="dialog"><h3>Editar Habitación ${room.id}</h3><label>Estado</label><select id="editRoomStatus"><option value="Limpia">Limpia</option><option value="Sucio">Sucio</option><option value="Bloqueada">Bloqueada</option></select><label>Asignar camarera (opcional)</label><select id="editRoomMaid"><option value="">-- Sin asignar --</option>${maidOptions}</select><label class="inline-check"><input type="checkbox" id="editRoomRented" /> <span>Ocupada</span></label><div class="row"><button id="saveEditRoom">Guardar</button><button id="closeModal">Cerrar</button></div></div>`
   const statusEl = document.getElementById('editRoomStatus')
   if (statusEl) statusEl.value = room.status || 'Limpia'
   const rentedEl = document.getElementById('editRoomRented')
@@ -571,9 +629,8 @@ async function editRoomModal(room) {
   document.getElementById('saveEditRoom').onclick = async () => {
     const newStatus =
       document.getElementById('editRoomStatus').value || 'Limpia'
-    const newMaid = document.getElementById('editRoomMaid').value
+    const newMaid = document.getElementById('editRoomMaid').value || null
     const newRented = document.getElementById('editRoomRented').checked
-    if (!newMaid) return alert('Debe asignar una camarera')
     room.status = newStatus
     room.maid = newMaid
     room.rented = !!newRented
@@ -889,6 +946,24 @@ function confirmAction(message) {
   })
 }
 
+// Guardar layout (pisos / habitaciones)
+if (btnSaveLayout) {
+  btnSaveLayout.addEventListener('click', async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const floors = parseInt(layoutFloorsInput?.value || '0', 10)
+    const roomsPerFloor = parseInt(layoutRoomsInput?.value || '0', 10)
+    if (!floors || floors < 1) return alert('Ingresa el número de pisos')
+    if (!roomsPerFloor || roomsPerFloor < 1)
+      return alert('Ingresa habitaciones por piso')
+    await saveLayoutSettings(floors, roomsPerFloor)
+    const created = await ensureRoomsFromLayout(floors, roomsPerFloor)
+    if (layoutStatus)
+      layoutStatus.textContent = `Guardado: ${floors} pisos x ${roomsPerFloor} hab. (${created} nuevas)`
+    await renderAll()
+  })
+}
+
 // Enlazar botones con soporte táctil mejorado
 if (btnAddRoom) {
   btnAddRoom.addEventListener(
@@ -952,5 +1027,34 @@ document.addEventListener('keydown', (e) => {
     modal.classList.add('hidden')
 })
 
-// Inicializar render
-renderAll()
+// =====================
+// Menú de navegación
+// =====================
+navItems.forEach(item => {
+  item.addEventListener('click', () => {
+    const section = item.dataset.section
+    scrollToSection(section)
+  })
+})
+
+function scrollToSection(section) {
+  const sectionMap = {
+    'rooms': roomsList.closest('.card'),
+    'maids': maidsList.closest('.card'),
+    'reports': reportsEl.closest('.card')
+  }
+  
+  const targetSection = sectionMap[section]
+  if (targetSection) {
+    targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
+
+// Inicializar: cargar layout (si existe), asegurar habitaciones y renderizar
+;(async () => {
+  await loadLayoutSettings()
+  if (layoutSettings?.floors && layoutSettings?.roomsPerFloor) {
+    await ensureRoomsFromLayout(layoutSettings.floors, layoutSettings.roomsPerFloor)
+  }
+  await renderAll()
+})()

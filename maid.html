@@ -2,11 +2,16 @@
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="format-detection" content="telephone=no" />
     <title>PWA Limpieza Hotel - Camarera</title>
     <link rel="manifest" href="./manifest.json" />
-    <!-- Iconos (usados por maid.js: bi-broom, bi-exclamation-triangle) -->
+    <!-- Iconos (usados por maid.js: bi-broom, bi-exclamation-triangle, bi-qr-code) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- QR Scanner -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <link rel="stylesheet" href="./src/maid.css" />
   </head>
   <body>
@@ -20,27 +25,28 @@
     <main class="container">
 
       <!-- ==========================
-            HABITACIONES ASIGNADAS
+            BÚSQUEDA Y FILTROS
       ========================== -->
       <section class="card">
-        <h2>Mis habitaciones asignadas</h2>
-
-        <div class="filters">
-          <button data-filter="all">Todas</button>
-          <button data-filter="to-clean">Sucias</button>
-          <button data-filter="clean">Limpias</button>
-          <button data-filter="occupied">Ocupadas</button>
+        <h3>Búsqueda rápida</h3>
+        <div class="search-section">
+          <div class="input-group">
+            <input id="roomSearch" type="text" placeholder="Escribir o escanear # habitación (ej: 1-01)" />
+            <button id="scanQrBtn" class="btn btn-sm btn-primary" title="Escanear código QR">
+              <i class="bi bi-qr-code"></i> Escanear QR
+            </button>
+          </div>
+          <div id="searchHint" style="font-size: 0.9rem; color: #666; margin-top: 6px;"></div>
         </div>
-
-        <div id="maidRooms" class="grid"></div>
       </section>
 
-
       <!-- ==========================
-            TODAS LAS HABITACIONES
+            MAPA DE HABITACIONES
       ========================== -->
       <section class="card card-secondary">
-        <h2>Listado general de habitaciones</h2>
+        <h3>Mapa de habitaciones</h3>
+
+        <div id="filterLegend" class="filter-legend"></div>
 
         <div id="allRooms" class="grid"></div>
       </section>

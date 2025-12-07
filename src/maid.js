@@ -1,4 +1,4 @@
-import { openDB, getAll, put } from "./idb.js";
+import { openDB, getAll, get, put } from "./idb.js";
 
 // En desarrollo, desregistrar SW para evitar caché de estilos
 if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
@@ -9,226 +9,251 @@ if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
 import { saveReportOffline } from "./offline-sync.js";
 
 const modal = document.getElementById("modal");
-const grid = document.getElementById("maidRooms");
 const allRoomsGrid = document.getElementById("allRooms");
-const filterBtns = Array.from(document.querySelectorAll(".filters button"));
+const roomSearchInput = document.getElementById("roomSearch");
+const scanQrBtn = document.getElementById("scanQrBtn");
+const filterLegend = document.getElementById("filterLegend");
+const searchHint = document.getElementById("searchHint");
 
 const params = new URLSearchParams(location.search);
 const user = params.get("user");
-let currentFilter = "all";
+let currentFilter = "all"; // filtro de leyenda
+let searchQuery = ""; // búsqueda por nombre/ID
 // cache para saber si el dispositivo tiene cámara trasera
 let rearCameraAvailable = null;
+// cache de layout (pisos y habitaciones)
+let layoutConfig = null;
 
 if (!user) {
   alert("Usuario no especificado. Vuelve al login.");
   location.href = "./index.html";
 }
 
-filterBtns.forEach((b) => {
-  b.addEventListener("click", () => {
-    filterBtns.forEach((x) => x.classList.remove("active"));
-    b.classList.add("active");
-    currentFilter = b.getAttribute("data-filter") || "all";
-    render();
-  });
-  
-});
+function getStatusKey(status) {
+  if (!status) return 'clean';
+  const s = String(status).toLowerCase();
+  if (s.includes('bloq') || s.includes('bloque') || s === 'blocked') return 'blocked';
+  if (s.includes('suc') || s.includes('sucio') || s === 'dirty') return 'dirty';
+  if (s.includes('limp') || s.includes('limpia') || s === 'clean') return 'clean';
+  return s;
+}
 
+function getFloorFromId(id) {
+  if (!id) return '1';
+  const str = String(id);
+  if (str.includes('-')) return str.split('-')[0];
+  const m = str.match(/^(\d+)/);
+  return m ? m[1] : '1';
+}
 
-function matchesFilter(r, filter) {
-  if (!filter || filter === "all") return true;
-  if (filter === "to-clean")
-    return (
-      String(r.status || "")
-        .toLowerCase()
-        .includes("suc") || String(r.status || "").toLowerCase() === "dirty"
-    );
-  if (filter === "clean")
-    return (
-      String(r.status || "")
-        .toLowerCase()
-        .includes("limp") || String(r.status || "").toLowerCase() === "clean"
-    );
-  if (filter === "occupied") return !!r.rented;
-  if (filter === "blocked")
-    return (
-      String(r.status || "")
-        .toLowerCase()
-        .includes("bloq") || String(r.status || "").toLowerCase() === "blocked"
-    );
+function getRoomNumberPart(id) {
+  if (!id) return '';
+  const str = String(id);
+  if (str.includes('-')) return str.split('-')[1] || str;
+  return str;
+}
+
+function padRoomNumber(n) {
+  const num = Number(n);
+  if (Number.isNaN(num)) return String(n || '').padStart(2, '0');
+  return String(num).padStart(2, '0');
+}
+
+async function loadLayoutConfig() {
+  try {
+    const stored = await get('settings', 'hotelLayout');
+    if (stored) layoutConfig = stored;
+  } catch (e) {
+    layoutConfig = null;
+  }
+}
+
+async function markRoomClean(room, sourceTag = 'grid') {
+  if (!room) return;
+  room.status = "Limpia";
+  room.cleanedBy = user;
+  room.cleanedAt = new Date().toISOString();
+  try {
+    await put("rooms", room);
+  } catch (e) {
+    console.error('put failed (' + sourceTag + ') room:', room.id, e);
+    await modalError('No se pudo actualizar la habitación: ' + (e && e.message));
+    return;
+  }
+  await render();
+}
+
+async function triggerReport(room) {
+  if (!room) return;
+  try {
+    if (rearCameraAvailable === null) rearCameraAvailable = await hasRearCamera();
+  } catch (e) {
+    rearCameraAvailable = false;
+  }
+  if (!rearCameraAvailable) {
+    await modalError('Función no habilitada en dispositivos sin cámara trasera');
+    return;
+  }
+  openReportModal(room);
+}
+
+function shouldShowRoom(room) {
+  // Filtrar por búsqueda de texto
+  if (searchQuery) {
+    const query = String(searchQuery).toLowerCase();
+    const roomId = String(room.id).toLowerCase();
+    if (!roomId.includes(query)) return false;
+  }
+
+  // Filtrar por estado seleccionado
+  if (currentFilter === "all") return true;
+  const statusKey = getStatusKey(room && room.status);
+  if (currentFilter === "assigned") return room.maid === user;
+  if (currentFilter === "dirty") return statusKey === 'dirty';
+  if (currentFilter === "clean") return statusKey === 'clean';
+  if (currentFilter === "blocked") return statusKey === 'blocked';
   return true;
 }
 
 export async function render() {
+  if (!layoutConfig) await loadLayoutConfig();
   const rooms = (await getAll("rooms").catch(() => [])) || [];
   
-  // SECCIÓN 1: Mis habitaciones asignadas (con filtros)
-  let assigned = rooms.filter((r) => r.maid === user);
-  let visible = assigned.filter((r) => matchesFilter(r, currentFilter));
+  // Solo renderizar el mapa de habitaciones
+  renderSeatMap(rooms);
+}
 
-  grid.innerHTML = "";
-  if (!visible.length) {
-    grid.innerHTML = "<p>No hay habitaciones asignadas.</p>";
-  } else {
-    for (const r of visible) {
-      const el = document.createElement("div");
-      el.className = "card room-card framed";
-      const statusText = r.status || "Limpia";
-      el.innerHTML = `<h3>Hab ${r.id}</h3><p>Estado: ${statusText}${
-        r.rented ? " (ocupada)" : ""
-      }</p>`;
-
-      // action container for nicer layout
-      const rowActions = document.createElement("div");
-      rowActions.className = "row-actions";
-
-      // show clean button only when status indicates 'sucia' / 'sucio'
-      const statusLower = String(r.status || "").toLowerCase();
-      if (statusLower.includes("suc") || statusLower === "dirty") {
-        const btnClean = document.createElement("button");
-        btnClean.type = 'button';
-        btnClean.className = "btn btn-sm btn-success";
-        btnClean.title = 'Marcar como limpia';
-        btnClean.innerHTML = '<i class="bi bi-broom"></i>Marcar limpia';
-        btnClean.addEventListener("click", async (ev) => {
-          ev.stopPropagation();
-          console.log('btnClean clicked (assigned list):', r.id);
-          // Marcar inmediatamente como limpia (un solo click)
-          r.status = "Limpia";
-          r.cleanedBy = user;
-          r.cleanedAt = new Date().toISOString();
-          try {
-            await put("rooms", r);
-            console.log('put success (assigned list) room:', r.id);
-          } catch (e) {
-            console.error('put failed (assigned list) room:', r.id, e);
-            await modalError('No se pudo actualizar la habitación: ' + (e && e.message));
-            return;
-          }
-          await render();
-        });
-        rowActions.appendChild(btnClean);
-      }
-
-      const btnReport = document.createElement("button");
-          btnReport.className = "btn btn-sm btn-danger";
-          btnReport.type = 'button';
-          btnReport.innerHTML = '<i class="bi bi-exclamation-triangle"></i>Levantar siniestro';
-          btnReport.title = 'Levantar siniestro (requiere cámara trasera)';
-          if (rearCameraAvailable === false) {
-            btnReport.disabled = true;
-            btnReport.setAttribute('aria-disabled', 'true');
-            btnReport.classList.add('disabled');
-            btnReport.title = 'Función no disponible en dispositivos sin cámara trasera';
-          }
-          btnReport.addEventListener("click", async (ev) => {
-            ev.stopPropagation();
-            try {
-              if (rearCameraAvailable === null) rearCameraAvailable = await hasRearCamera();
-            } catch (e) {
-              rearCameraAvailable = false;
-            }
-            if (!rearCameraAvailable) {
-              await modalError('Función no habilitada en dispositivos sin cámara trasera');
-              return;
-            }
-            openReportModal(r);
-          });
-      rowActions.appendChild(btnReport);
-
-      el.appendChild(rowActions);
-
-      const tag = document.createElement("small");
-      tag.textContent = "Asignada";
-      el.appendChild(tag);
-
-      grid.appendChild(el);
-    }
-  }
-
-  // SECCIÓN 2: Listado general de todas las habitaciones (sin filtros)
+function renderSeatMap(rooms) {
   allRoomsGrid.innerHTML = "";
-  if (!rooms.length) {
-    allRoomsGrid.innerHTML = "<p>No hay habitaciones registradas.</p>";
-  } else {
-    for (const r of rooms) {
-      const el = document.createElement("div");
-      el.className = "card room-card framed";
-      const statusText = r.status || "Limpia";
-      const statusLower = String(r.status || "").toLowerCase();
-      const assignedMaid = r.maid ? `(Asignada a: ${r.maid})` : "(Sin asignar)";
-      let cleanedInfo = "";
-      if (r.cleanedBy && (statusLower.includes("limp") || statusLower === "clean")) {
-        cleanedInfo = `<br><small style="color:#2e8b57;font-weight:500;">Aseada por: ${r.cleanedBy}</small>`;
-      }
-      el.innerHTML = `<h3>Hab ${r.id}</h3><p>Estado: ${statusText}${
-        r.rented ? " (ocupada)" : ""
-      }${cleanedInfo}</p><small>${assignedMaid}</small>`;
-
-      // action container for nicer layout
-      const rowActions = document.createElement("div");
-      rowActions.className = "row-actions";
-
-      // show clean button when status indicates 'sucia' / 'sucio' (any camarera can clean)
-      if (statusLower.includes("suc") || statusLower === "dirty") {
-        const btnClean = document.createElement("button");
-        btnClean.type = 'button';
-        btnClean.className = "btn btn-sm btn-success";
-        btnClean.title = 'Marcar como limpia';
-        btnClean.innerHTML = '<i class="bi bi-broom"></i>Marcar limpia';
-        btnClean.addEventListener("click", async (ev) => {
-          ev.stopPropagation();
-          console.log('btnClean clicked (all rooms list):', r.id);
-          // Marcar inmediatamente como limpia (un solo click)
-          r.status = "Limpia";
-          r.cleanedBy = user;
-          r.cleanedAt = new Date().toISOString();
-          try {
-            await put("rooms", r);
-            console.log('put success (all rooms list) room:', r.id);
-          } catch (e) {
-            console.error('put failed (all rooms list) room:', r.id, e);
-            await modalError('No se pudo actualizar la habitación: ' + (e && e.message));
-            return;
-          }
-          await render();
-        });
-        rowActions.appendChild(btnClean);
-      }
-
-      // show report button only if assigned to current user
-      if (r.maid === user) {
-        const btnReport = document.createElement("button");
-        btnReport.className = 'btn btn-sm btn-danger';
-        btnReport.type = 'button';
-        btnReport.innerHTML = '<i class="bi bi-exclamation-triangle"></i>Levantar siniestro';
-        btnReport.title = 'Levantar siniestro (requiere cámara trasera)';
-        if (rearCameraAvailable === false) {
-          btnReport.disabled = true;
-          btnReport.setAttribute('aria-disabled', 'true');
-          btnReport.classList.add('disabled');
-          btnReport.title = 'Función no disponible en dispositivos sin cámara trasera';
-        }
-        btnReport.addEventListener('click', async (ev) => {
-          ev.stopPropagation();
-          try {
-            if (rearCameraAvailable === null) rearCameraAvailable = await hasRearCamera();
-          } catch (e) {
-            rearCameraAvailable = false;
-          }
-          if (!rearCameraAvailable) {
-            await modalError('Función no habilitada en dispositivos sin cámara trasera');
-            return;
-          }
-          openReportModal(r);
-        });
-        rowActions.appendChild(btnReport);
-      }
-
-      el.appendChild(rowActions);
-      allRoomsGrid.appendChild(el);
-    }
+  
+  // Filtrar habitaciones según búsqueda y filtro
+  const visibleRooms = rooms.filter(shouldShowRoom);
+  
+  if (!visibleRooms.length) {
+    allRoomsGrid.innerHTML = "<p>No se encontraron habitaciones con los filtros aplicados.</p>";
+    return;
   }
+
+  // Organización por piso
+  const roomsMap = new Map(visibleRooms.map((r) => [String(r.id), r]));
+  const floors = [];
+  const cfg = layoutConfig && layoutConfig.floors && layoutConfig.roomsPerFloor ? layoutConfig : null;
+
+  if (cfg) {
+    for (let f = 1; f <= cfg.floors; f++) {
+      const floorId = String(f);
+      const seats = [];
+      for (let n = 1; n <= cfg.roomsPerFloor; n++) {
+        const roomId = `${floorId}-${padRoomNumber(n)}`;
+        const room = rooms.find(r => String(r.id) === roomId) || null;
+        if (room && shouldShowRoom(room)) {
+          seats.push({ roomId, room });
+        }
+      }
+      if (seats.length) floors.push({ floorId, seats });
+    }
+  } else {
+    const grouped = visibleRooms.reduce((acc, r) => {
+      const fId = getFloorFromId(r.id);
+      if (!acc[fId]) acc[fId] = [];
+      acc[fId].push({ roomId: String(r.id), room: r });
+      return acc;
+    }, {});
+    Object.keys(grouped)
+      .sort((a, b) => Number(a) - Number(b))
+      .forEach((floorId) => floors.push({ floorId, seats: grouped[floorId] }));
+  }
+
+  if (!floors.length) {
+    allRoomsGrid.innerHTML = "<p>No se encontraron habitaciones con los filtros aplicados.</p>";
+    return;
+  }
+
+  floors.forEach(({ floorId, seats }) => {
+    const floorBlock = document.createElement('div');
+    floorBlock.className = 'floor-block card';
+
+    const title = document.createElement('div');
+    title.className = 'floor-title';
+    title.textContent = `Piso ${floorId}`;
+    floorBlock.appendChild(title);
+
+    const seatRow = document.createElement('div');
+    seatRow.className = 'room-seats';
+
+    seats.forEach(({ roomId, room }) => {
+      const statusKey = getStatusKey(room && room.status);
+      const assignedToMe = room && room.maid === user;
+      let colorClass = 'seat-gray';
+      if (statusKey === 'blocked' || statusKey === 'siniestro') colorClass = 'seat-red';
+      else if (assignedToMe) colorClass = 'seat-green';
+      else if (statusKey === 'dirty') colorClass = 'seat-blue';
+
+      const seat = document.createElement('div');
+      seat.className = `room-seat ${colorClass}`;
+      seat.setAttribute('data-room', roomId);
+
+      const seatHeader = document.createElement('div');
+      seatHeader.className = 'room-seat__name';
+      seatHeader.textContent = roomId;
+
+      const seatMeta = document.createElement('div');
+      seatMeta.className = 'room-seat__meta';
+      seatMeta.textContent = room ? (room.status || 'Limpia') : 'Sin registrar';
+
+      const seatAssign = document.createElement('div');
+      seatAssign.className = 'room-seat__assignment';
+      if (room) {
+        seatAssign.textContent = room.maid ? `Asignada a ${room.maid}` : 'Sin asignar';
+      } else {
+        seatAssign.textContent = 'No existe en base';
+      }
+
+      const actions = document.createElement('div');
+      actions.className = 'seat-actions';
+
+      if (room && statusKey === 'dirty') {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-sm btn-success';
+        btn.innerHTML = '<i class="bi bi-broom"></i>Limpia';
+        btn.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          await markRoomClean(room, 'seat-map');
+        });
+        actions.appendChild(btn);
+      }
+
+      if (room && room.maid === user) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-sm btn-danger';
+        btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i>Siniestro';
+        if (rearCameraAvailable === false) {
+          btn.disabled = true;
+          btn.setAttribute('aria-disabled', 'true');
+          btn.classList.add('disabled');
+          btn.title = 'Función no disponible en dispositivos sin cámara trasera';
+        }
+        btn.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          await triggerReport(room);
+        });
+        actions.appendChild(btn);
+      }
+
+      seat.appendChild(seatHeader);
+      seat.appendChild(seatMeta);
+      seat.appendChild(seatAssign);
+      if (actions.childElementCount) seat.appendChild(actions);
+
+      seat.title = `Hab ${roomId} \nEstado: ${room ? (room.status || 'Limpia') : 'Sin registrar'}${room && room.rented ? ' (ocupada)' : ''}\nAsignación: ${room && room.maid ? room.maid : 'Ninguna'}`;
+      seatRow.appendChild(seat);
+    });
+
+    floorBlock.appendChild(seatRow);
+    allRoomsGrid.appendChild(floorBlock);
+  });
 }
 
 // simple confirm modal for maid page
@@ -594,10 +619,179 @@ async function init() {
   } catch (e) {
     rearCameraAvailable = false;
   }
-  // set default active filter button
-  const btnAll = document.querySelector('.filters button[data-filter="all"]');
-  if (btnAll) btnAll.classList.add("active");
+  
+  // Renderizar leyenda como botones filtrados
+  renderFilterLegend();
+  
+  // Listeners para búsqueda
+  roomSearchInput.addEventListener('input', (e) => {
+    searchQuery = String(e.target.value).trim();
+    searchHint.textContent = searchQuery ? `Filtrando: "${searchQuery}"` : '';
+    render();
+  });
+
+  roomSearchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const value = String(roomSearchInput.value).trim();
+      if (value) {
+        // Buscar y scroll a la habitación
+        const seats = Array.from(document.querySelectorAll('[data-room]'));
+        const match = seats.find(s => s.getAttribute('data-room') === value);
+        if (match) {
+          match.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          match.style.backgroundColor = '#fffacd';
+          setTimeout(() => (match.style.backgroundColor = ''), 1500);
+        } else {
+          searchHint.textContent = `Habitación "${value}" no encontrada`;
+        }
+      }
+    }
+  });
+
+  // Listener para QR scanner
+  scanQrBtn.addEventListener('click', async () => {
+    try {
+      if (rearCameraAvailable === null) rearCameraAvailable = await hasRearCamera();
+    } catch (e) {
+      rearCameraAvailable = false;
+    }
+    
+    if (!rearCameraAvailable) {
+      await modalError('El escaneo de QR requiere cámara trasera. Esta función no está disponible en tu dispositivo.');
+      return;
+    }
+    
+    startQrScanner();
+  });
+  
+  // Deshabilitar botón QR si no hay cámara trasera
+  if (rearCameraAvailable === false) {
+    scanQrBtn.disabled = true;
+    scanQrBtn.classList.add('disabled');
+    scanQrBtn.title = 'Requiere cámara trasera';
+  }
+
   await render();
+}
+
+function renderFilterLegend() {
+  filterLegend.innerHTML = '';
+  
+  const filters = [
+    { key: 'all', label: 'Todas', icon: 'grid-3x2-gap' },
+    { key: 'assigned', label: 'Asignadas a mí', icon: 'person-check', dot: 'seat-green' },
+    { key: 'dirty', label: 'Sucias', icon: 'exclamation-circle', dot: 'seat-blue' },
+    { key: 'clean', label: 'Limpias', icon: 'check-circle', dot: 'seat-gray' },
+    { key: 'blocked', label: 'Siniestro', icon: 'exclamation-triangle', dot: 'seat-red' },
+  ];
+
+  filters.forEach(({ key, label, icon, dot }) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'filter-btn';
+    if (key === currentFilter) btn.classList.add('active');
+    
+    let html = `<i class="bi bi-${icon}"></i> ${label}`;
+    if (dot) html = `<span class="legend-dot ${dot}"></span> ${label}`;
+    btn.innerHTML = html;
+    
+    btn.addEventListener('click', () => {
+      currentFilter = key;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      render();
+    });
+    
+    filterLegend.appendChild(btn);
+  });
+}
+
+async function startQrScanner() {
+  const modal_qr = document.createElement('div');
+  modal_qr.className = 'modal show';
+  modal_qr.innerHTML = `
+    <div class="modal-content" style="max-width: 500px;">
+      <h4>Escanear QR/Código de barras</h4>
+      <p style="font-size: 0.9rem; color: #666;">Apunta la cámara al código QR o barras de la habitación</p>
+      <video id="qrVideo" style="width: 100%; border-radius: 8px; background: #000; margin: 16px 0;"></video>
+      <div id="qrResult" style="min-height: 40px; padding: 12px; background: #f0f0f0; border-radius: 8px; margin: 12px 0; text-align: center; font-weight: 600;"></div>
+      <div class="row">
+        <button id="cancelQr" class="btn btn-secondary">Cerrar</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal_qr);
+
+  const video = modal_qr.querySelector('#qrVideo');
+  const resultDiv = modal_qr.querySelector('#qrResult');
+  const cancelBtn = modal_qr.querySelector('#cancelQr');
+  
+  let stream = null;
+  let scanning = true;
+
+  cancelBtn.addEventListener('click', () => {
+    scanning = false;
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    modal_qr.remove();
+  });
+
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' },
+      audio: false,
+    });
+    video.srcObject = stream;
+    video.play();
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    let lastResult = null;
+
+    const scanFrame = () => {
+      if (!scanning) return;
+
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = window.jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: 'dontInvert',
+        });
+
+        if (code && code.data !== lastResult) {
+          lastResult = code.data;
+          resultDiv.textContent = `✓ Detectado: ${code.data}`;
+          resultDiv.style.background = '#d4edda';
+          resultDiv.style.color = '#155724';
+
+          // Auto-apply
+          scanning = false;
+          if (stream) stream.getTracks().forEach(t => t.stop());
+          
+          roomSearchInput.value = code.data;
+          searchQuery = code.data;
+          searchHint.textContent = `Escaneado: "${code.data}"`;
+          
+          setTimeout(() => {
+            modal_qr.remove();
+            render();
+          }, 600);
+          return;
+        }
+      }
+
+      requestAnimationFrame(scanFrame);
+    };
+
+    scanFrame();
+  } catch (err) {
+    resultDiv.textContent = '✗ No se pudo acceder a la cámara';
+    resultDiv.style.background = '#f8d7da';
+    resultDiv.style.color = '#721c24';
+  }
 }
 
 init();

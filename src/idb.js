@@ -1,6 +1,7 @@
 export function openDB() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open("hotel-db", 1);
+    // version 2: se agrega el objectStore "settings"
+    const req = indexedDB.open("hotel-db", 2);
     req.onupgradeneeded = (e) => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains("rooms"))
@@ -11,6 +12,8 @@ export function openDB() {
         db.createObjectStore("reports", { keyPath: "_id" });
       if (!db.objectStoreNames.contains("outbox"))
         db.createObjectStore("outbox", { keyPath: "_id" });
+      if (!db.objectStoreNames.contains("settings"))
+        db.createObjectStore("settings", { keyPath: "key" });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -32,6 +35,16 @@ export async function put(storeName, value) {
   return new Promise((res, rej) => {
     const tx = db.transaction(storeName, "readwrite");
     const req = tx.objectStore(storeName).put(value);
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+export async function get(storeName, key) {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(storeName, "readonly");
+    const req = tx.objectStore(storeName).get(key);
     req.onsuccess = () => res(req.result);
     req.onerror = () => rej(req.error);
   });
