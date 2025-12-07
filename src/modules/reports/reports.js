@@ -96,8 +96,8 @@ function createReportRow(report, maids) {
   tr.appendChild(tdRoom)
   tr.appendChild(tdMaid)
   tr.appendChild(tdSubject)
-  tr.appendChild(tdStatus)
   tr.appendChild(tdResumen)
+  tr.appendChild(tdStatus)
 
   return tr
 }

@@ -30,8 +30,36 @@ async function bootstrap() {
     }
   }
 
+  const passwordInput = document.getElementById("password");
+  const togglePasswordBtn = document.getElementById("togglePassword");
+  const loginErrorEl = document.getElementById("loginError");
+
+  const showError = (msg) => {
+    if (!loginErrorEl) return;
+    loginErrorEl.textContent = msg;
+    loginErrorEl.classList.remove("hidden");
+  };
+
+  const clearError = () => {
+    if (!loginErrorEl) return;
+    loginErrorEl.classList.add("hidden");
+    loginErrorEl.textContent = "";
+  };
+
+  if (togglePasswordBtn && passwordInput) {
+    const eyeIcon = document.getElementById("eyeIcon");
+    togglePasswordBtn.addEventListener("click", () => {
+      const isHidden = passwordInput.type === "password";
+      passwordInput.type = isHidden ? "text" : "password";
+      if (eyeIcon) {
+        eyeIcon.className = isHidden ? "bi bi-eye" : "bi bi-eye-slash";
+      }
+    });
+  }
+
   document.getElementById("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
+    clearError();
 
     const u = document.getElementById("username").value.trim();
     const p = document.getElementById("password").value || "";
@@ -62,13 +90,13 @@ async function bootstrap() {
       );
 
       if (!maid) {
-        alert("Usuario no encontrado");
+        showError("El correo y/o contraseña son incorrectos.");
         return;
       }
 
       // Validar contraseña (modo simple)
       if (!maid.password || String(maid.password) !== String(p)) {
-        alert("Contraseña incorrecta");
+        showError("El correo y/o contraseña son incorrectos.");
         return;
       }
 

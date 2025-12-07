@@ -23,7 +23,7 @@ export async function openMaidAddModal() {
       <div style="position: relative;">
         <input id="maidPassword" type="password" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" style="padding-right: 40px;" />
         <button id="pwdToggle" type="button" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.2rem; color: #666; padding: 4px 8px;" title="Mostrar/Ocultar contraseña">
-          <i class="bi bi-eye-slash" id="eyeIcon"></i>
+          <i class="bi bi-eye-slash" id="pwdEye"></i>
         </button>
       </div>
       <label for="maidStatus">Estado</label>
@@ -34,7 +34,7 @@ export async function openMaidAddModal() {
       </div>
     </div>`
 
-  setupPasswordToggle('pwdToggle', 'maidPassword', 'eyeIcon')
+  setupPasswordToggle('pwdToggle', 'maidPassword', 'pwdEye')
   setupPasswordInputClick('maidPassword')
 
   document.getElementById('closeModal').onclick = () => hideModal()
@@ -80,9 +80,9 @@ export async function openMaidEditModal(maid) {
 
       <label for="editMaidPassword">Nueva Contraseña (opcional)</label>
       <div style="position: relative;">
-        <input id="editMaidPassword" type="password" placeholder="Dejar vacío para no cambiar" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" style="padding-right: 40px;"/>
+        <input id="editMaidPassword" type="password" placeholder="Nueva contraseña" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" style="padding-right: 40px;"/>
         <button id="editPwdToggle" type="button" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.2rem; color: #666; padding: 4px 8px;" title="Mostrar/Ocultar contraseña">
-          <i class="bi bi-eye-slash" id="eyeIcon"></i>
+          <i class="bi bi-eye-slash" id="editPwdEye"></i>
         </button>
       </div>
 
@@ -102,7 +102,7 @@ export async function openMaidEditModal(maid) {
   const statusEl = document.getElementById('editMaidStatus')
   statusEl.value = maid.status || MAID_STATUS.AVAILABLE
 
-  setupPasswordToggle('editPwdToggle', 'editMaidPassword', 'eyeIcon')
+  setupPasswordToggle('editPwdToggle', 'editMaidPassword', 'editPwdEye')
   setupPasswordInputClick('editMaidPassword')
 
   document.getElementById('closeModal').onclick = () => hideModal()

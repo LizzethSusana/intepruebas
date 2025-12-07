@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>PWA Limpieza Hotel - Login</title>
     <link rel="manifest" href="./manifest.json" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
     <link rel="stylesheet" href="./src/styles.css" />
   </head>
   <body>
@@ -18,7 +19,14 @@
       <input id="username" name="username" required autocomplete="off" />
 
       <label for="password">Contraseña:</label>
-      <input id="password" name="password" type="password" required />
+      <div class="password-field">
+        <input id="password" name="password" type="password" required />
+        <button type="button" id="togglePassword" aria-label="Mostrar u ocultar contraseña" class="toggle-password">
+          <i class="bi bi-eye-slash" id="eyeIcon"></i>
+        </button>
+      </div>
+
+      <div id="loginError" class="error-msg hidden"></div>
 
       <button type="submit">Entrar</button>
     </form>
