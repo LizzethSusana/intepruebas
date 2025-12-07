@@ -70,9 +70,15 @@ async function loadLayoutConfig() {
 
 async function markRoomClean(room, sourceTag = 'grid') {
   if (!room) return;
+  
+  // Mostrar modal de confirmación
+  const confirmed = await confirmMarkClean(room);
+  if (!confirmed) return; // Usuario canceló
+  
   room.status = "Limpia";
   room.cleanedBy = user;
   room.cleanedAt = new Date().toISOString();
+  
   try {
     await put("rooms", room);
   } catch (e) {
@@ -80,6 +86,7 @@ async function markRoomClean(room, sourceTag = 'grid') {
     await modalError('No se pudo actualizar la habitación: ' + (e && e.message));
     return;
   }
+  
   await render();
 }
 
@@ -266,6 +273,53 @@ function confirmAction(message) {
       modal.classList.add("hidden");
       res(false);
     };
+    document.getElementById("confirmYes").onclick = () => {
+      modal.classList.add("hidden");
+      res(true);
+    };
+  });
+}
+
+/**
+ * Modal de confirmación para marcar habitación como limpia
+ * Incluye validación de conectividad a internet
+ * @param {Object} room - Habitación a marcar como limpia
+ * @returns {Promise<boolean>} - true si confirma, false si cancela
+ */
+function confirmMarkClean(room) {
+  return new Promise((res) => {
+    const hasConnection = navigator.onLine;
+    const connectionStatus = hasConnection 
+      ? '✓ Conexión: En línea' 
+      : '⚠ Conexión: Sin internet';
+    
+    const connectionColor = hasConnection ? '#2e8b57' : '#b8860b';
+    
+    modal.classList.remove("hidden");
+    modal.innerHTML = `
+      <div class="modal-content" role="dialog">
+        <h4>Marcar habitación como limpia</h4>
+        <p style="font-size: 1.1rem; margin: 16px 0;">
+          ¿Estás seguro de que la habitación <strong>${room.id}</strong> ha sido limpiada?
+        </p>
+        <div style="background: #f0f0f0; padding: 12px; border-radius: 6px; margin: 12px 0; font-size: 0.95rem;">
+          <div style="color: ${connectionColor}; font-weight: 600;">
+            ${connectionStatus}
+          </div>
+          ${!hasConnection ? '<div style="color: #b8860b; margin-top: 8px; font-size: 0.9rem;">Los datos se sincronizarán cuando haya conexión.</div>' : ''}
+        </div>
+        <div class="row">
+          <button id="confirmYes" class="btn btn-primary" style="flex: 1;">Sí, está limpia</button>
+          <button id="confirmNo" class="btn btn-secondary" style="flex: 1;">Cancelar</button>
+        </div>
+      </div>
+    `;
+    
+    document.getElementById("confirmNo").onclick = () => {
+      modal.classList.add("hidden");
+      res(false);
+    };
+    
     document.getElementById("confirmYes").onclick = () => {
       modal.classList.add("hidden");
       res(true);
@@ -596,21 +650,22 @@ async function openReportModal(room) {
           body: JSON.stringify(report),
         });
 
-        if (!resp.ok) throw new Error("Network");
+        if (!resp.ok) throw new Error("Network response error");
 
         const rjson = await resp.json();
         await put("reports", rjson);
 
         // ✔ Mostrar modal de éxito
-        await modalSuccess("✓ El reporte fue enviado correctamente.");
+        await modalSuccess("✓ El reporte fue enviado correctamente al servidor.");
       } catch (e) {
-        // Si falla aunque hay conexión, guardar para sincronizar después
+        // Error de conexión o API no disponible - guardar en dispositivo
+        console.warn('Error al enviar a servidor:', e);
         await saveReportOffline(report);
         await put("reports", report);
         
-        // Notificación de guardado
-        await warningModal(
-          "⚠ No se pudo conectar con el servidor en este momento.\n\nEl reporte se guardará en tu dispositivo y se enviará automáticamente cuando haya conexión disponible."
+        // Notificación: se guarda en el dispositivo
+        await modalSuccess(
+          "✓ El reporte ha sido guardado en tu dispositivo.\n\nSe sincronizará automáticamente con el servidor cuando sea posible."
         );
       }
     } else {
