@@ -705,7 +705,6 @@ td {
   padding: 12px 15px;
   border-bottom: 1px solid #e6e6e6;
   text-align: left;
-  white-space: nowrap; /* Evita que el texto se corte */
 }
 
 .report-status {
@@ -728,12 +727,12 @@ td {
 @media (max-width: 768px) {
   th,
   td {
-    padding: 10px 8px;
-    font-size: 0.85rem;
+    padding: 8px 6px;
+    font-size: 0.8rem;
   }
 
   table {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
   }
 }
 
@@ -744,27 +743,30 @@ td {
     padding-bottom: 4px;
   }
 
-  /* Reducir el ancho mínimo de la tabla en móviles muy pequeños */
+  /* Tabla ajustada al ancho disponible en móviles pequeños */
   table {
-    font-size: 0.7rem;
-    min-width: 500px;
+    font-size: 0.75rem;
+    min-width: 100%;
   }
 
   th,
   td {
-    padding: 8px 6px;
-    font-size: 0.7rem;
+    padding: 10px 6px;
+    font-size: 0.75rem;
+    word-break: break-word;
+    white-space: normal;
   }
 
   .report-status {
-    min-width: 120px;
-    padding: 10px 8px;
-    font-size: 0.85rem;
+    min-width: 100px;
+    padding: 6px 4px;
+    font-size: 0.7rem;
+    width: 100%;
   }
 
-  /* Descripción con scroll interno si es muy larga */
+  /* Descripción con ajuste de texto */
   td:nth-child(4) {
-    max-width: 150px;
+    max-width: 100px;
     white-space: normal;
     word-wrap: break-word;
   }

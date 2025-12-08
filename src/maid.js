@@ -236,7 +236,7 @@ function renderSeatMap(rooms) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'btn btn-sm btn-danger';
-        btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i>Siniestro';
+        btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i>Reporte';
         if (rearCameraAvailable === false) {
           btn.disabled = true;
           btn.setAttribute('aria-disabled', 'true');
@@ -268,6 +268,7 @@ function renderSeatMap(rooms) {
 function confirmAction(message) {
   return new Promise((res) => {
     modal.classList.remove("hidden");
+    modal.classList.add("show");
     modal.innerHTML = `<div class="modal-content" role="dialog"><h4>Confirmar</h4><p>${message}</p><div class="row"><button id="confirmYes" class="btn btn-primary">Sí</button><button id="confirmNo" class="btn btn-secondary">No</button></div></div>`;
     document.getElementById("confirmNo").onclick = () => {
       modal.classList.add("hidden");
@@ -290,38 +291,41 @@ function confirmMarkClean(room) {
   return new Promise((res) => {
     const hasConnection = navigator.onLine;
     const connectionStatus = hasConnection 
-      ? '✓ Conexión: En línea' 
+      ? '' 
       : '⚠ Conexión: Sin internet';
     
     const connectionColor = hasConnection ? '#2e8b57' : '#b8860b';
     
     modal.classList.remove("hidden");
+    modal.classList.add("show");
     modal.innerHTML = `
       <div class="modal-content" role="dialog">
-        <h4>Marcar habitación como limpia</h4>
-        <p style="font-size: 1.1rem; margin: 16px 0;">
-          ¿Estás seguro de que la habitación <strong>${room.id}</strong> ha sido limpiada?
+        <h4 style="margin-bottom: 20px; color: var(--primary);">Marcar habitación como limpia</h4>
+        <p style="font-size: 1rem; margin: 16px 0; line-height: 1.6; color: #555;">
+          ¿Estás seguro de que la habitación <strong style="color: var(--primary);">${room.id}</strong> ha sido limpiada correctamente?
         </p>
-        <div style="background: #f0f0f0; padding: 12px; border-radius: 6px; margin: 12px 0; font-size: 0.95rem;">
+        <div style="background: #f8f9fa; padding: 14px; border-left: 4px solid ${connectionColor}; border-radius: 6px; margin: 16px 0; font-size: 0.95rem;">
           <div style="color: ${connectionColor}; font-weight: 600;">
             ${connectionStatus}
           </div>
-          ${!hasConnection ? '<div style="color: #b8860b; margin-top: 8px; font-size: 0.9rem;">Los datos se sincronizarán cuando haya conexión.</div>' : ''}
+          ${!hasConnection ? '<div style="color: #b8860b; margin-top: 8px; font-size: 0.9rem;">Los datos se sincronizarán automáticamente cuando haya conexión.</div>' : ''}
         </div>
-        <div class="row">
-          <button id="confirmYes" class="btn btn-primary" style="flex: 1;">Sí, está limpia</button>
-          <button id="confirmNo" class="btn btn-secondary" style="flex: 1;">Cancelar</button>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+          <button id="confirmNo" class="btn btn-sm btn-secondary">Cancelar</button>
+          <button id="confirmYes" class="btn btn-sm btn-primary">Sí, está limpia</button>
         </div>
       </div>
     `;
     
     document.getElementById("confirmNo").onclick = () => {
       modal.classList.add("hidden");
+      modal.classList.remove("show");
       res(false);
     };
     
     document.getElementById("confirmYes").onclick = () => {
       modal.classList.add("hidden");
+      modal.classList.remove("show");
       res(true);
     };
   });
@@ -330,6 +334,7 @@ function confirmMarkClean(room) {
 function warningModal(msg) {
   return new Promise((res) => {
     modal.classList.remove("hidden");
+    modal.classList.add("show");
     modal.innerHTML = `
     <div class="modal-content" style="border-left: 6px solid #f5c048;">
       <h4 style="color:#b8860b;">Advertencia</h4>
@@ -340,6 +345,7 @@ function warningModal(msg) {
     </div>`;
     document.getElementById("warnOk").onclick = () => {
       modal.classList.add("hidden");
+      modal.classList.remove("show");
       res(true);
     };
   });
@@ -347,9 +353,10 @@ function warningModal(msg) {
 function modalSuccess(msg) {
   return new Promise((res) => {
     modal.classList.remove("hidden");
+    modal.classList.add("show");
     modal.innerHTML = `
     <div class="modal-content" style="border-left: 6px solid #42c76a;">
-      <h3 style="color:#2e8b57;">Éxito</h3>
+      <h4 style="color:#2e8b57;">Éxito</h4>
       <p>${msg}</p>
       <div class="row">
         <button id="okSuccess" class="btn btn-primary">Aceptar</button>
@@ -357,6 +364,7 @@ function modalSuccess(msg) {
     </div>`;
     document.getElementById("okSuccess").onclick = () => {
       modal.classList.add("hidden");
+      modal.classList.remove("show");
       res(true);
     };
   });
@@ -365,16 +373,18 @@ function modalSuccess(msg) {
 function modalError(msg) {
   return new Promise((res) => {
     modal.classList.remove("hidden");
+    modal.classList.add("show");
     modal.innerHTML = `
     <div class="modal-content" style="border-left: 6px solid #ff5d5d;">
-      <h3 style="color:#b00020;">Error</h3>
+      <h4 style="color:#d9534f;">Error</h4>
       <p>${msg}</p>
       <div class="row">
-        <button id="okError" class="btn btn-secondary">Cerrar</button>
+        <button id="errOk" class="btn btn-primary">Entendido</button>
       </div>
     </div>`;
-    document.getElementById("okError").onclick = () => {
+    document.getElementById("errOk").onclick = () => {
       modal.classList.add("hidden");
+      modal.classList.remove("show");
       res(true);
     };
   });
@@ -420,41 +430,80 @@ async function hasRearCamera() {
   }
 }
 
+// Solicita permiso de cámara al sistema y cierra inmediatamente el stream
+async function requestCameraPermission() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+  try {
+    const tempStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false,
+    });
+    tempStream.getTracks().forEach((t) => t.stop());
+    return true;
+  } catch (e) {
+    console.warn('Permiso de cámara no concedido o no disponible', e);
+    await warningModal(
+      'No se otorgó permiso para usar la cámara. Puedes habilitarlo en los ajustes del navegador y volver a intentarlo.'
+    );
+    return false;
+  }
+}
+
 async function openReportModal(room) {
   modal.classList.remove("hidden");
   modal.classList.add("show");
 
   modal.innerHTML = `
-  <div class="modal-content">
-    <h3>Siniestro - Hab ${room.id}</h3>
-    
-    <label for="subject">Tema / Asunto</label>
-    <input id="subject" type="text" placeholder="Ej: Fuga de agua, daño en mueble, etc." required />
-    
-    <label for="desc">Descripción</label>
-    <textarea id="desc" placeholder="Describe el problema en detalle..." required></textarea>
-    
-    <label>Fotos (máx 3)</label>
-    <div id="cameraArea">
-      <video id="video" autoplay playsinline style="width:100%;max-height:240px;background:#000;display:none;border-radius:6px;"></video>
-      <canvas id="canvas" style="display:none;"></canvas>
-      <div id="cameraControls" style="margin-top:8px;display:flex;align-items:center;gap:8px;">
-        <button id="startCam" class="btn btn-sm btn-primary">Iniciar cámara</button>
-        <button id="capture" class="btn btn-sm btn-success" disabled>Tomar foto</button>
-        <span id="photoCount" style="margin-left:8px">0 / 3</span>
+  <div class="modal-content report-modal">
+    <header class="report-modal__header">
+      <div>
+        <p class="report-badge">Hab ${room.id}</p>
+        <h3>Reporte de siniestro</h3>
+        <p class="report-subtitle">Describe el incidente y adjunta hasta 3 fotos.</p>
       </div>
-      <div id="thumbs" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"></div>
+    </header>
+
+    <div class="report-grid">
+      <div class="form-field">
+        <label for="subject">Tema / Asunto</label>
+        <input id="subject" type="text" placeholder="Ej: Fuga de agua, daño en mueble, etc." required />
+      </div>
+
+      <div class="form-field">
+        <label for="desc">Descripción</label>
+        <textarea id="desc" placeholder="Describe el problema en detalle..." required></textarea>
+      </div>
+
+      <div class="form-field">
+        <div class="field-label-row">
+          <label>Fotos (máx 3)</label>
+          <span id="photoCount" class="counter">0 / 3</span>
+        </div>
+        <div id="cameraArea" class="camera-card">
+          <div class="camera-preview">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+            <div class="camera-placeholder" id="cameraPlaceholder">Vista previa de la cámara</div>
+          </div>
+          <div id="cameraControls" class="camera-controls">
+            <button id="startCam" class="btn btn-sm btn-primary">Iniciar cámara</button>
+            <button id="capture" class="btn btn-sm btn-success" disabled>Tomar foto</button>
+          </div>
+          <div id="thumbs" class="thumbs"></div>
+        </div>
+      </div>
     </div>
-    
-    <div class="row modal-actions">
-      <button id="send" class="btn btn-primary">Enviar</button>
-      <button id="close" class="btn btn-secondary">Cerrar</button>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+      <button id="close" class="btn btn-sm btn-secondary">Cancelar</button>
+      <button id="send" class="btn btn-sm btn-primary">Enviar reporte</button>
     </div>
   </div>`;
 
   document.getElementById("close").onclick = () => {
     stopStream();
     modal.classList.add("hidden");
+    modal.classList.remove("show");
   };
 
   // camera elements and state
@@ -464,6 +513,11 @@ async function openReportModal(room) {
   const captureBtn = document.getElementById("capture");
   const thumbs = document.getElementById("thumbs");
   const photoCount = document.getElementById("photoCount");
+  const cameraPreview = document.querySelector("#cameraArea .camera-preview");
+  const cameraPlaceholder = document.getElementById("cameraPlaceholder");
+
+  // Solicitar permiso de cámara de forma anticipada
+  requestCameraPermission();
 
   // Comprobar si hay cámara trasera y deshabilitar control si no existe
   try {
@@ -499,31 +553,15 @@ async function openReportModal(room) {
     thumbs.innerHTML = "";
     images.forEach((src, idx) => {
       const d = document.createElement("div");
-      d.style.position = "relative";
-      d.style.width = "80px";
-      d.style.height = "80px";
-      d.style.border = "1px solid #ddd";
-      d.style.borderRadius = "6px";
-      d.style.overflow = "hidden";
+      d.className = "thumb";
       const img = document.createElement("img");
       img.src = src;
-      img.style.width = "100%";
-      img.style.height = "100%";
-      img.style.objectFit = "cover";
+      img.alt = "Foto capturada";
       d.appendChild(img);
       const rem = document.createElement("button");
       rem.textContent = "✕";
       rem.title = "Eliminar";
-      rem.style.position = "absolute";
-      rem.style.top = "4px";
-      rem.style.right = "4px";
-      rem.style.background = "rgba(0,0,0,0.5)";
-      rem.style.color = "#fff";
-      rem.style.border = "none";
-      rem.style.borderRadius = "50%";
-      rem.style.width = "22px";
-      rem.style.height = "22px";
-      rem.style.cursor = "pointer";
+      rem.className = "thumb-remove";
       rem.onclick = () => {
         images.splice(idx, 1);
         updateThumbs();
@@ -554,6 +592,8 @@ async function openReportModal(room) {
       });
       video.srcObject = stream;
       video.style.display = "block";
+      if (cameraPreview) cameraPreview.classList.add("active");
+      if (cameraPlaceholder) cameraPlaceholder.style.display = "none";
       startCamBtn.style.display = "none";
       captureBtn.disabled = false;
       updateUI();
@@ -572,6 +612,8 @@ async function openReportModal(room) {
       stream = null;
     }
     if (video) video.style.display = "none";
+    if (cameraPreview) cameraPreview.classList.remove("active");
+    if (cameraPlaceholder) cameraPlaceholder.style.display = "flex";
     const camControls = document.getElementById("cameraControls");
     if (camControls && startCamBtn) {
       startCamBtn.style.display = "inline-block";
@@ -683,6 +725,7 @@ async function openReportModal(room) {
     // detener cámara, cerrar modal y refrescar
     stopStream();
     modal.classList.add("hidden");
+    modal.classList.remove("show");
     await render();
   };
 }

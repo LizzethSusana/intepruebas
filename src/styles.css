@@ -118,15 +118,15 @@ input {
 .toggle-password {
   position: absolute;
   right: 10px;
-  top: -18px;
-  bottom: 0;
-  transform: none;
+  top: 8%;
+  transform: translateY(-50%);
   background: transparent;
   border: none;
   cursor: pointer;
   font-size: 1.2rem;
   color: #444;
   width: 2.4rem;
+  height: 2.4rem;
   display: grid;
   place-items: center;
   padding: 0;
