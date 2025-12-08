@@ -224,10 +224,12 @@ function renderSeatMap(rooms) {
         btn.type = 'button';
         btn.className = 'btn btn-sm btn-success';
         btn.innerHTML = '<i class="bi bi-broom"></i>Limpia';
-        btn.addEventListener('click', async (ev) => {
+        const handleClean = async (ev) => {
           ev.stopPropagation();
           await markRoomClean(room, 'seat-map');
-        });
+        };
+        btn.addEventListener('click', handleClean);
+        btn.addEventListener('touchend', handleClean);
         actions.appendChild(btn);
       }
 
@@ -236,17 +238,19 @@ function renderSeatMap(rooms) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'btn btn-sm btn-danger';
-        btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i>Reporte';
+        btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i>Siniestro';
         if (rearCameraAvailable === false) {
           btn.disabled = true;
           btn.setAttribute('aria-disabled', 'true');
           btn.classList.add('disabled');
           btn.title = 'Función no disponible en dispositivos sin cámara trasera';
         }
-        btn.addEventListener('click', async (ev) => {
+        const handleReport = async (ev) => {
           ev.stopPropagation();
           await triggerReport(room);
-        });
+        };
+        btn.addEventListener('click', handleReport);
+        btn.addEventListener('touchend', handleReport);
         actions.appendChild(btn);
       }
 
